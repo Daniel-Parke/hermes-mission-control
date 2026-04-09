@@ -1,0 +1,118 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, monospace;
+  
+  /* Futuristic color palette */
+  --color-neon-cyan: #00f5ff;
+  --color-neon-purple: #b829ff;
+  --color-neon-pink: #ff2d95;
+  --color-neon-green: #39ff14;
+  --color-neon-orange: #ff6b35;
+  --color-dark-950: #030712;
+  --color-dark-900: #0a0e1a;
+  --color-dark-800: #111827;
+  --color-dark-700: #1e2a3a;
+  --color-dark-600: #2a3a4a;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0e1a;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a3a4a;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #00f5ff33;
+}
+
+/* Glow effects */
+.glow-cyan {
+  box-shadow: 0 0 20px rgba(0, 245, 255, 0.15), 0 0 40px rgba(0, 245, 255, 0.05);
+}
+.glow-purple {
+  box-shadow: 0 0 20px rgba(184, 41, 255, 0.15), 0 0 40px rgba(184, 41, 255, 0.05);
+}
+.glow-green {
+  box-shadow: 0 0 20px rgba(57, 255, 20, 0.15), 0 0 40px rgba(57, 255, 20, 0.05);
+}
+.glow-pink {
+  box-shadow: 0 0 20px rgba(255, 45, 149, 0.15), 0 0 40px rgba(255, 45, 149, 0.05);
+}
+.glow-orange {
+  box-shadow: 0 0 20px rgba(255, 107, 53, 0.15), 0 0 40px rgba(255, 107, 53, 0.05);
+}
+.text-glow-cyan {
+  text-shadow: 0 0 10px rgba(0, 245, 255, 0.5);
+}
+.text-glow-purple {
+  text-shadow: 0 0 10px rgba(184, 41, 255, 0.5);
+}
+
+/* Animated gradient border */
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+.animated-border {
+  background: linear-gradient(135deg, #00f5ff, #b829ff, #ff2d95, #00f5ff);
+  background-size: 300% 300%;
+  animation: gradient-shift 4s ease infinite;
+}
+
+/* Pulse animation */
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Scanline effect */
+.scanlines::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 245, 255, 0.015) 2px,
+    rgba(0, 245, 255, 0.015) 4px
+  );
+  pointer-events: none;
+}
+
+/* Slide in animation (for toasts) */
+@keyframes slide-in-from-bottom {
+  from { transform: translateY(0.5rem); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.animate-in {
+  animation: slide-in-from-bottom 0.2s ease-out;
+}
+
+/* Skeleton shimmer animation */
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.skeleton-shimmer {
+  animation: skeleton-shimmer 1.8s ease-in-out infinite;
+}
+
+/* Grid background */
+.grid-bg {
+  background-image: 
+    linear-gradient(rgba(0, 245, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 245, 255, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+}

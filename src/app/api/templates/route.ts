@@ -1,0 +1,136 @@
+// ═══════════════════════════════════════════════════════════════
+// Custom Templates API — CRUD for user-created mission templates
+// ═══════════════════════════════════════════════════════════════
+
+import { NextRequest, NextResponse } from "next/server";
+import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, unlinkSync } from "fs";
+import { PATHS } from "@/lib/hermes";
+
+const DATA_DIR = PATHS.templates;
+
+function ensureDir() {
+  if (!existsSync(DATA_DIR)) {
+    mkdirSync(DATA_DIR, { recursive: true });
+  }
+}
+
+interface CustomTemplate {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+  description: string;
+  instruction: string;
+  context: string;
+  goals: string[];
+  suggestedSkills: string[];
+  dispatchMode: "save" | "now" | "cron";
+  schedule: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+function loadTemplate(id: string): CustomTemplate | null {
+  const path = DATA_DIR + "/" + id + ".json";
+  if (!existsSync(path)) return null;
+  try {
+    return JSON.parse(readFileSync(path, "utf-8"));
+  } catch {
+    return null;
+  }
+}
+
+function saveTemplate(template: CustomTemplate) {
+  ensureDir();
+  const path = DATA_DIR + "/" + template.id + ".json";
+  writeFileSync(path, JSON.stringify(template, null, 2));
+}
+
+export async function GET() {
+  try {
+    ensureDir();
+    const files = readdirSync(DATA_DIR).filter((f) => f.endsWith(".json"));
+    const templates: CustomTemplate[] = [];
+
+    for (const file of files) {
+      try {
+        const content = readFileSync(DATA_DIR + "/" + file, "utf-8");
+        templates.push(JSON.parse(content));
+      } catch {}
+    }
+
+    templates.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    return NextResponse.json({ data: { templates, total: templates.length } });
+  } catch {
+    return NextResponse.json({ error: "Failed to list templates" }, { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { action } = body;
+
+    if (action === "create") {
+      const id = "ct_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 4);
+      const now = new Date().toISOString();
+
+      const template: CustomTemplate = {
+        id,
+        name: body.name || "Untitled Template",
+        icon: body.icon || "Zap",
+        color: body.color || "cyan",
+        description: body.description || "",
+        instruction: body.instruction || "",
+        context: body.context || "",
+        goals: body.goals || [],
+        suggestedSkills: body.suggestedSkills || [],
+        dispatchMode: body.dispatchMode || "now",
+        schedule: body.schedule || "every 15m",
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      saveTemplate(template);
+      return NextResponse.json({ data: template });
+    }
+
+    if (action === "update") {
+      const { templateId } = body;
+      const template = loadTemplate(templateId);
+      if (!template) {
+        return NextResponse.json({ error: "Template not found" }, { status: 404 });
+      }
+
+      if (body.name !== undefined) template.name = body.name;
+      if (body.icon !== undefined) template.icon = body.icon;
+      if (body.color !== undefined) template.color = body.color;
+      if (body.description !== undefined) template.description = body.description;
+      if (body.instruction !== undefined) template.instruction = body.instruction;
+      if (body.context !== undefined) template.context = body.context;
+      if (body.goals !== undefined) template.goals = body.goals;
+      if (body.suggestedSkills !== undefined) template.suggestedSkills = body.suggestedSkills;
+      if (body.dispatchMode !== undefined) template.dispatchMode = body.dispatchMode;
+      if (body.schedule !== undefined) template.schedule = body.schedule;
+      template.updatedAt = new Date().toISOString();
+
+      saveTemplate(template);
+      return NextResponse.json({ data: template });
+    }
+
+    if (action === "delete") {
+      const { templateId } = body;
+      const path = DATA_DIR + "/" + templateId + ".json";
+      if (existsSync(path)) {
+        unlinkSync(path);
+        return NextResponse.json({ data: { deleted: true } });
+      }
+      return NextResponse.json({ error: "Template not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ error: "Unknown action" }, { status: 400 });
+  } catch {
+    return NextResponse.json({ error: "Failed to process request" }, { status: 500 });
+  }
+}

@@ -288,8 +288,8 @@ export default function MissionsPage() {
       });
 
       if (res.ok) {
-        showToast("Mission re-dispatched! Redirecting to dashboard...", "success");
-        setTimeout(() => router.push("/"), 800);
+        showToast("Mission re-dispatched! Returning to dashboard...", "success");
+        setTimeout(() => router.push("/"), 2000);
       } else {
         showToast("Failed to re-dispatch mission", "error");
         setDispatching(false);
@@ -325,11 +325,11 @@ export default function MissionsPage() {
         fetchData();
         setDispatching(false);
       } else if (newDispatch === "now") {
-        showToast("Mission dispatched! Redirecting to dashboard...", "success");
-        setTimeout(() => router.push("/"), 500);
+        showToast("Mission dispatched! Returning to dashboard...", "success");
+        setTimeout(() => router.push("/"), 2000);
       } else {
         showToast(`Mission scheduled — ${newSchedule}`, "success");
-        setTimeout(() => router.push("/"), 500);
+        setTimeout(() => router.push("/"), 2000);
       }
     } else {
       showToast("Failed to create mission", "error");

@@ -310,9 +310,9 @@ export default function PersonalitiesPage() {
       const persData = await persRes.json();
       const configData = await configRes.json();
 
-      setPersonalities(persData.personalities || []);
+      setPersonalities(persData.data?.personalities || persData.personalities || []);
       setActivePersonality(
-        ((configData.display as Record<string, unknown>)?.personality as string) || ""
+        ((configData.data?.display as Record<string, unknown>)?.personality as string) || ""
       );
     } catch {
       toast.showToast("Failed to load personalities", "error");

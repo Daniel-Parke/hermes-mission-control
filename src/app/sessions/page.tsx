@@ -84,7 +84,7 @@ export default function SessionsPage() {
   useEffect(() => {
     fetch("/api/sessions")
       .then((res) => res.json())
-      .then(setData)
+      .then((d) => setData(d.data))
       .finally(() => setLoading(false));
   }, []);
 

@@ -244,7 +244,7 @@ export default function MemoryPage() {
     setLoading(true);
     fetch("/api/memory")
       .then((res) => res.json())
-      .then(setData)
+      .then((d) => setData(d.data))
       .finally(() => setLoading(false));
   }, []);
 

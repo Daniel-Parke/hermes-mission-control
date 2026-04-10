@@ -218,13 +218,13 @@ export default function Dashboard() {
     setTime(new Date());
     const clockInterval = setInterval(() => setTime(new Date()), 1000);
 
-    fetch("/api/status").then((r) => r.json()).then(setStatus).catch(() => setStatus(null));
-    fetch("/api/config").then((r) => r.json()).then(setConfig).catch(() => setConfig(null));
+    fetch("/api/status").then((r) => r.json()).then((d) => setStatus(d.data)).catch(() => setStatus(null));
+    fetch("/api/config").then((r) => r.json()).then((d) => setConfig(d.data)).catch(() => setConfig(null));
     fetch("/api/missions?action=templates").then((r) => r.json()).then((d) => setTemplates(d.data?.templates || [])).catch(() => setTemplates([]));
 
     const refreshMonitor = () => {
-      fetch("/api/monitor").then((r) => r.json()).then(setMonitor).catch(() => setMonitor(null));
-      fetch("/api/agents").then((r) => r.json()).then((d) => setAgents(d.agents || [])).catch(() => setAgents([]));
+      fetch("/api/monitor").then((r) => r.json()).then((d) => setMonitor(d.data)).catch(() => setMonitor(null));
+      fetch("/api/agents").then((r) => r.json()).then((d) => setAgents(d.data?.agents || d.agents || [])).catch(() => setAgents([]));
       fetch("/api/missions").then((r) => r.json()).then((d) => setMissions(d.data?.missions || [])).catch(() => setMissions([]));
     };
     refreshMonitor();
@@ -538,7 +538,7 @@ export default function Dashboard() {
             </h2>
             <RefreshCw
               className="w-3 h-3 text-white/20 hover:text-white/50 cursor-pointer"
-              onClick={() => fetch("/api/agents").then((r) => r.json()).then((d) => setAgents(d.agents || []))}
+              onClick={() => fetch("/api/agents").then((r) => r.json()).then((d) => setAgents(d.data?.agents || d.agents || []))}
             />
           </div>
           {agents.length === 0 ? (

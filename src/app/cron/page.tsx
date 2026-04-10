@@ -572,7 +572,7 @@ export default function CronPage() {
   const loadJobs = useCallback(() => {
     fetch("/api/cron")
       .then((res) => res.json())
-      .then(setData)
+      .then((d) => setData(d.data))
       .finally(() => setLoading(false));
   }, []);
 

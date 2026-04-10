@@ -428,14 +428,14 @@ export default function Dashboard() {
                             : "text-neon-orange"
                         }`}>
                           {job.state === "running"
-                            ? "executing..."
+                            ? "Executing..."
                             : job.lastRun && !job.nextRun
-                            ? `${job.lastStatus || "done"} ${timeAgo(job.lastRun)}`
+                            ? `${(job.lastStatus || "Ok").charAt(0).toUpperCase() + (job.lastStatus || "Ok").slice(1)} ${timeAgo(job.lastRun)}`
                             : job.nextRun && new Date(job.nextRun).getTime() > Date.now()
-                            ? "next " + timeUntil(job.nextRun)
+                            ? "Next " + timeUntil(job.nextRun)
                             : job.lastRun
-                            ? `active · ran ${timeAgo(job.lastRun)}`
-                            : "queued"}
+                            ? `Active · Ran ${timeAgo(job.lastRun)}`
+                            : "Queued"}
                         </span>
                       )}
                     </div>

@@ -887,7 +887,7 @@ export default function MissionsPage() {
                                 <div className="flex justify-between">
                                   <span className="text-white/30">State</span>
                                   <span className={detail.cronJob.enabled ? "text-neon-green" : "text-white/40"}>
-                                    {detail.cronJob.enabled ? detail.cronJob.state : "disabled"}
+                                    {detail.cronJob.enabled ? (detail.cronJob.state.charAt(0).toUpperCase() + detail.cronJob.state.slice(1)) : "Disabled"}
                                   </span>
                                 </div>
                                 <div className="flex justify-between">
@@ -896,7 +896,7 @@ export default function MissionsPage() {
                                 </div>
                                 <div className="flex justify-between">
                                   <span className="text-white/30">Last run</span>
-                                  <span className="text-white/60">{detail.cronJob.lastRun ? timeAgo(detail.cronJob.lastRun) : "never"}</span>
+                                  <span className="text-white/60">{detail.cronJob.lastRun ? timeAgo(detail.cronJob.lastRun) : "Never"}</span>
                                 </div>
                                 <div className="flex justify-between">
                                   <span className="text-white/30">Status</span>
@@ -910,21 +910,21 @@ export default function MissionsPage() {
                                       : "text-neon-orange"
                                   }>
                                     {detail.cronJob.state === "running"
-                                      ? "executing..."
+                                      ? "Executing..."
                                       : detail.cronJob.lastRun && !detail.cronJob.nextRun
-                                      ? `${detail.cronJob.lastStatus || "done"} ${timeAgo(detail.cronJob.lastRun)}`
+                                      ? `${(detail.cronJob.lastStatus || "Ok").charAt(0).toUpperCase() + (detail.cronJob.lastStatus || "Ok").slice(1)} ${timeAgo(detail.cronJob.lastRun)}`
                                       : detail.cronJob.nextRun && new Date(detail.cronJob.nextRun).getTime() > Date.now()
-                                      ? "next " + timeUntil(detail.cronJob.nextRun)
+                                      ? "Next " + timeUntil(detail.cronJob.nextRun)
                                       : detail.cronJob.lastRun
-                                      ? `active · ran ${timeAgo(detail.cronJob.lastRun)}`
-                                      : "queued"}
+                                      ? `Active · Ran ${timeAgo(detail.cronJob.lastRun)}`
+                                      : "Queued"}
                                   </span>
                                 </div>
                                 {detail.cronJob.lastStatus && (
                                   <div className="flex justify-between">
                                     <span className="text-white/30">Last status</span>
                                     <span className={detail.cronJob.lastStatus === "ok" ? "text-neon-green" : "text-red-400"}>
-                                      {detail.cronJob.lastStatus}
+                                      {detail.cronJob.lastStatus.charAt(0).toUpperCase() + detail.cronJob.lastStatus.slice(1)}
                                     </span>
                                   </div>
                                 )}

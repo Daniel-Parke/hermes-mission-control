@@ -339,6 +339,13 @@ export async function GET(request: Request) {
         return m;
       }
 
+      // Scheduler is actively executing — highest priority state
+      if (job.state === "running") {
+        m.status = "running";
+        m.updatedAt = new Date().toISOString();
+        return m;
+      }
+
       // Check session completion if the job has run
       if (job.last_run_at) {
         // Find the most recent session for this cron job
@@ -361,19 +368,23 @@ export async function GET(request: Request) {
           } catch {}
         }
 
-        // Fall back to cron job status if session validation passes or no session found
+        // Fall back to cron job status
         if (job.last_status) {
           if (job.last_status === "ok") {
             const repeat = job.repeat;
             const isOneShot = typeof repeat === "object" && repeat.times === 1;
-            m.status = isOneShot ? "completed" : "running";
+            if (isOneShot) {
+              m.status = "completed";
+            } else {
+              // Recurring job — not currently running (checked above),
+              // so it is waiting for next scheduled run
+              m.status = "dispatched";
+            }
           } else {
             m.status = "failed";
             m.error = `Cron job status: ${job.last_status}`;
           }
           m.updatedAt = new Date().toISOString();
-        } else if (job.state === "running") {
-          m.status = "running";
         }
       }
       return m;

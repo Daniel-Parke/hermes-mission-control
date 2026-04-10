@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { readFileSync, existsSync, readdirSync, statSync } from "fs";
 
 import { HERMES_HOME, PATHS } from "@/lib/hermes";
+import { ApiResponse } from "@/types/hermes";
+import { logApiError } from "@/lib/api-logger";
 
 export async function GET(
   request: NextRequest,
@@ -42,7 +44,7 @@ export async function GET(
             frontmatter[key] = val;
           }
         }
-      } catch {}
+      } catch (err) { logApiError("GET /api/skills/[path]", "parsing frontmatter for " + path.join("/"), err); }
       body = content.slice(fmMatch[0].length).trim();
     }
 
@@ -64,19 +66,21 @@ export async function GET(
               });
             }
           }
-        } catch {}
+        } catch (err) { logApiError("GET /api/skills/[path]", "reading linked files in " + subdirPath, err); }
       }
     }
 
     return NextResponse.json({
-      name: path[path.length - 1],
-      path: path.join("/"),
-      frontmatter,
-      content: body,
-      rawContent: content,
-      size: stats.size,
-      lastModified: stats.mtime.toISOString(),
-      linkedFiles,
+      data: {
+        name: path[path.length - 1],
+        path: path.join("/"),
+        frontmatter,
+        content: body,
+        rawContent: content,
+        size: stats.size,
+        lastModified: stats.mtime.toISOString(),
+        linkedFiles,
+      },
     });
   } catch {
     return NextResponse.json(

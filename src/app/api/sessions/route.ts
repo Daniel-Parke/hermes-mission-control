@@ -2,12 +2,14 @@ import { NextResponse } from "next/server";
 import { readFileSync, readdirSync, existsSync, statSync } from "fs";
 
 import { HERMES_HOME, PATHS } from "@/lib/hermes";
+import { ApiResponse } from "@/types/hermes";
+import { logApiError } from "@/lib/api-logger";
 
 export async function GET() {
   const sessionsPath = PATHS.sessions;
 
   if (!existsSync(sessionsPath)) {
-    return NextResponse.json({ sessions: [], total: 0 });
+    return NextResponse.json({ data: { sessions: [], total: 0 } });
   }
 
   try {
@@ -35,7 +37,7 @@ export async function GET() {
           model = data.model || "";
           source = data.source || "";
         }
-      } catch {}
+      } catch (err) { logApiError("GET /api/sessions", "reading session file " + file, err); }
 
       return {
         id: file.replace(/\.(json|jsonl)$/, ""),
@@ -56,10 +58,13 @@ export async function GET() {
     );
 
     return NextResponse.json({
-      sessions,
-      total: sessions.length,
+      data: {
+        sessions,
+        total: sessions.length,
+      },
     });
   } catch (error) {
+    logApiError("GET /api/sessions", "reading sessions directory", error);
     return NextResponse.json(
       { error: "Failed to read sessions" },
       { status: 500 }

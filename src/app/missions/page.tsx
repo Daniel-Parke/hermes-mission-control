@@ -151,6 +151,7 @@ export default function MissionsPage() {
   const [newGoals, setNewGoals] = useState("");
   const [newDispatch, setNewDispatch] = useState<"save" | "now" | "cron">("now");
   const [newSchedule, setNewSchedule] = useState("every 15m");
+  const [dispatching, setDispatching] = useState(false);
 
   const fetchData = useCallback(() => {
     fetch("/api/missions")
@@ -233,6 +234,8 @@ export default function MissionsPage() {
 
   const handleCreate = async () => {
     if (!newName.trim() || !newInstruction.trim()) return;
+    if (dispatching) return; // Prevent double-submit
+    setDispatching(true);
 
     const fullPrompt = buildPrompt();
 
@@ -264,6 +267,7 @@ export default function MissionsPage() {
         } else {
           showToast("Failed to update mission", "error");
         }
+        setDispatching(false);
         return;
       }
 
@@ -288,6 +292,7 @@ export default function MissionsPage() {
         setTimeout(() => router.push("/"), 800);
       } else {
         showToast("Failed to re-dispatch mission", "error");
+        setDispatching(false);
       }
       return;
     }
@@ -318,6 +323,7 @@ export default function MissionsPage() {
         setNewGoals("");
         setShowCreate(false);
         fetchData();
+        setDispatching(false);
       } else if (newDispatch === "now") {
         showToast("Mission dispatched! Redirecting to dashboard...", "success");
         setTimeout(() => router.push("/"), 500);
@@ -327,6 +333,7 @@ export default function MissionsPage() {
       }
     } else {
       showToast("Failed to create mission", "error");
+      setDispatching(false);
     }
   };
 
@@ -715,7 +722,7 @@ export default function MissionsPage() {
                 </div>
               )}
               <div className="flex gap-2 pt-1">
-                <Button onClick={handleCreate} disabled={!newName.trim() || !newInstruction.trim()}>
+                <Button onClick={handleCreate} disabled={!newName.trim() || !newInstruction.trim() || dispatching} loading={dispatching}>
                   <Send className="w-3.5 h-3.5" />
                   {(() => {
                     const existing = editingId ? missions.find(m => m.id === editingId) : null;

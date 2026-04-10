@@ -209,31 +209,6 @@ export default function SessionDetailPage() {
     loadSession();
   }, [loadSession]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-dark-950 grid-bg flex items-center justify-center">
-        <LoadingSpinner text="Loading transcript..." />
-      </div>
-    );
-  }
-
-  if (error || !data) {
-    return (
-      <div className="min-h-screen bg-dark-950 grid-bg flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-xl font-bold text-white mb-2">Session Not Found</h2>
-          <p className="text-white/40 font-mono mb-4">{error || "Unknown error"}</p>
-          <Link
-            href="/sessions"
-            className="text-neon-orange text-sm font-mono hover:underline"
-          >
-            ← Back to Sessions
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
   // Count messages by role
   const roleCounts = useMemo(() => {
     if (!data?.messages) return {};
@@ -265,7 +240,7 @@ export default function SessionDetailPage() {
     if (roleMessages.length === 0) return;
 
     // Find first message below current viewport
-    const viewportTop = window.scrollY + 120;
+    const viewportTop = window.scrollY + 120; // offset for sticky header
     for (const { index } of roleMessages) {
       const el = messageRefs.current.get(index);
       if (el && el.offsetTop > viewportTop) {
@@ -273,7 +248,7 @@ export default function SessionDetailPage() {
         return;
       }
     }
-    // Wrap around
+    // Wrap around — scroll to first message of this role
     const firstEl = messageRefs.current.get(roleMessages[0].index);
     if (firstEl) firstEl.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [data?.messages]);
@@ -284,6 +259,31 @@ export default function SessionDetailPage() {
     tool: { bg: "bg-neon-green/10", text: "text-neon-green" },
     system: { bg: "bg-white/5", text: "text-white/40" },
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-dark-950 grid-bg flex items-center justify-center">
+        <LoadingSpinner text="Loading transcript..." />
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="min-h-screen bg-dark-950 grid-bg flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-bold text-white mb-2">Session Not Found</h2>
+          <p className="text-white/40 font-mono mb-4">{error || "Unknown error"}</p>
+          <Link
+            href="/sessions"
+            className="text-neon-orange text-sm font-mono hover:underline"
+          >
+            ← Back to Sessions
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-dark-950 grid-bg">

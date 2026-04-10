@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 
 import { HERMES_HOME, PATHS, getDefaultModelConfig } from "@/lib/hermes";
 import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, unlinkSync } from "fs";
+import { validateSessionCompletion, SessionMessage } from "@/lib/utils";
 
 const DATA_DIR = PATHS.missions;
 const CRON_PATH = PATHS.cronJobs;
@@ -325,14 +326,6 @@ export async function GET(request: Request) {
     function deriveMissionStatus(m: MissionRecord, job: CronJobData | null): MissionRecord {
       if (!job || m.status === "completed" || m.status === "failed" || m.status === "draft") return m;
 
-      // Cron job explicitly completed (one-shot finished)
-      if (job.state === "completed") {
-        m.status = job.last_status === "ok" ? "completed" : "failed";
-        if (m.status === "failed") m.error = `Cron job failed: ${job.last_status}`;
-        m.updatedAt = new Date().toISOString();
-        return m;
-      }
-
       // Cron job explicitly paused by user (cancel action)
       if (job.state === "paused" && !job.enabled) {
         m.status = "failed";
@@ -341,19 +334,42 @@ export async function GET(request: Request) {
         return m;
       }
 
-      // If cron job has run and got a status, sync mission
-      if (job.last_run_at && job.last_status) {
-        if (job.last_status === "ok") {
-          const repeat = job.repeat;
-          const isOneShot = typeof repeat === "object" && repeat.times === 1;
-          m.status = isOneShot ? "completed" : "running";
-        } else {
-          m.status = "failed";
-          m.error = `Cron job status: ${job.last_status}`;
+      // Check session completion if the job has run
+      if (job.last_run_at) {
+        // Find the most recent session for this cron job
+        const sessions = findSessionsForCronJob(job.id);
+        if (sessions.length > 0) {
+          const latestSessionId = sessions[0].id;
+          const sessionPath = SESSIONS_DIR + "/" + latestSessionId + ".json";
+          try {
+            const sessionData = JSON.parse(readFileSync(sessionPath, "utf-8"));
+            const messages: SessionMessage[] = sessionData.messages || [];
+            const validation = validateSessionCompletion(messages);
+
+            if (!validation.completed) {
+              // Session did NOT complete successfully — this is a failure
+              m.status = "failed";
+              m.error = `Session ${validation.reason}${validation.timedOut ? " (timed out)" : ""}`;
+              m.updatedAt = new Date().toISOString();
+              return m;
+            }
+          } catch {}
         }
-        m.updatedAt = new Date().toISOString();
-      } else if (job.state === "running") {
-        m.status = "running";
+
+        // Fall back to cron job status if session validation passes or no session found
+        if (job.last_status) {
+          if (job.last_status === "ok") {
+            const repeat = job.repeat;
+            const isOneShot = typeof repeat === "object" && repeat.times === 1;
+            m.status = isOneShot ? "completed" : "running";
+          } else {
+            m.status = "failed";
+            m.error = `Cron job status: ${job.last_status}`;
+          }
+          m.updatedAt = new Date().toISOString();
+        } else if (job.state === "running") {
+          m.status = "running";
+        }
       }
       return m;
     }
@@ -402,8 +418,26 @@ export async function GET(request: Request) {
           // Sync mission status with cron
           deriveMissionStatus(mission, job);
         } else if (mission.dispatchMode === "now" && mission.status === "dispatched") {
-          // One-shot cron job was deleted after completion — mark completed
-          mission.status = "completed";
+          // One-shot cron job was deleted after completion — validate session before marking completed
+          const sessions = findSessionsForCronJob(mission.cronJobId || "");
+          if (sessions.length > 0) {
+            const sessionPath = SESSIONS_DIR + "/" + sessions[0].id + ".json";
+            try {
+              const sessionData = JSON.parse(readFileSync(sessionPath, "utf-8"));
+              const messages: SessionMessage[] = sessionData.messages || [];
+              const validation = validateSessionCompletion(messages);
+              if (!validation.completed) {
+                mission.status = "failed";
+                mission.error = `Session ${validation.reason}${validation.timedOut ? " (timed out)" : ""}`;
+              } else {
+                mission.status = "completed";
+              }
+            } catch {
+              mission.status = "completed"; // fallback if session can't be read
+            }
+          } else {
+            mission.status = "completed"; // no session found, assume completed
+          }
           mission.updatedAt = new Date().toISOString();
         }
       }
@@ -448,8 +482,26 @@ export async function GET(request: Request) {
             // Sync mission status
             deriveMissionStatus(m, job);
           } else if (m.dispatchMode === "now" && m.status === "dispatched") {
-            // One-shot cron job was deleted after completion
-            m.status = "completed";
+            // One-shot cron job was deleted — validate session before marking completed
+            const sessions = findSessionsForCronJob(m.cronJobId || "");
+            if (sessions.length > 0) {
+              const sessionPath = SESSIONS_DIR + "/" + sessions[0].id + ".json";
+              try {
+                const sessionData = JSON.parse(readFileSync(sessionPath, "utf-8"));
+                const messages: SessionMessage[] = sessionData.messages || [];
+                const validation = validateSessionCompletion(messages);
+                if (!validation.completed) {
+                  m.status = "failed";
+                  m.error = `Session ${validation.reason}${validation.timedOut ? " (timed out)" : ""}`;
+                } else {
+                  m.status = "completed";
+                }
+              } catch {
+                m.status = "completed";
+              }
+            } else {
+              m.status = "completed";
+            }
             m.updatedAt = new Date().toISOString();
           }
         }

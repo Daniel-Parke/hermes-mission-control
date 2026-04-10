@@ -1,4 +1,4 @@
-import { getMissionProgressSteps, messageSummary, ProgressStep } from "@/lib/utils";
+import { getMissionProgressSteps, messageSummary, validateSessionCompletion, SessionMessage } from "@/lib/utils";
 
 describe("getMissionProgressSteps", () => {
   describe("labels", () => {
@@ -128,5 +128,134 @@ describe("messageSummary", () => {
     const summary = messageSummary("Short message");
     expect(summary).toBe("Short message");
     expect(summary).not.toMatch(/\.\.\.$/);
+  });
+});
+
+describe("validateSessionCompletion", () => {
+  describe("empty sessions", () => {
+    it("should mark empty session as not completed", () => {
+      const result = validateSessionCompletion([]);
+      expect(result.completed).toBe(false);
+      expect(result.reason).toContain("empty session");
+    });
+  });
+
+  describe("interrupted sessions (last message is tool)", () => {
+    it("should detect interrupted session when last message is a tool result", () => {
+      const messages: SessionMessage[] = [
+        { role: "user", content: "Do a code review" },
+        { role: "assistant", content: "Let me review the code", tool_calls: [{ function: { name: "read_file" } }] },
+        { role: "tool", content: "File contents here..." },
+      ];
+      const result = validateSessionCompletion(messages);
+      expect(result.completed).toBe(false);
+      expect(result.timedOut).toBe(true);
+      expect(result.reason).toContain("interrupted");
+      expect(result.lastMessageRole).toBe("tool");
+    });
+
+    it("should handle the actual Code Review timeout scenario", () => {
+      // Simulates the real scenario: delegate_task results came back but agent never responded
+      const messages: SessionMessage[] = [
+        { role: "user", content: "Code review prompt..." },
+        { role: "assistant", content: "Starting review", tool_calls: [{ function: { name: "delegate_task" } }] },
+        { role: "tool", content: JSON.stringify({ results: [{ status: "completed", summary: "Found bugs" }] }) },
+        { role: "assistant", content: "Now let me do detailed review", tool_calls: [{ function: { name: "delegate_task" } }] },
+        { role: "tool", content: JSON.stringify({ results: [{ status: "interrupted", summary: "Operation interrupted" }] }) },
+      ];
+      const result = validateSessionCompletion(messages);
+      expect(result.completed).toBe(false);
+      expect(result.timedOut).toBe(true);
+      expect(result.reason).toContain("interrupted");
+    });
+  });
+
+  describe("completed sessions", () => {
+    it("should detect completed session with meaningful assistant response", () => {
+      const messages: SessionMessage[] = [
+        { role: "user", content: "Review this code" },
+        { role: "assistant", content: "I found 3 issues:\n1. Bug in auth\n2. Missing error handling\n3. SQL injection risk\n\nHere's my detailed analysis..." },
+      ];
+      const result = validateSessionCompletion(messages);
+      expect(result.completed).toBe(true);
+      expect(result.hasFinalReport).toBe(true);
+    });
+
+    it("should detect completed session with GOAL_DONE markers", () => {
+      const messages: SessionMessage[] = [
+        { role: "user", content: "Fix this bug" },
+        { role: "assistant", content: "GOAL_DONE: Reproduced the issue\nGOAL_DONE: Found root cause\nFixed the bug in auth.ts" },
+      ];
+      const result = validateSessionCompletion(messages);
+      expect(result.completed).toBe(true);
+      expect(result.hasFinalReport).toBe(true);
+    });
+
+    it("should detect [SILENT] completion", () => {
+      const messages: SessionMessage[] = [
+        { role: "user", content: "Check for issues" },
+        { role: "assistant", content: "[SILENT]" },
+      ];
+      const result = validateSessionCompletion(messages);
+      expect(result.completed).toBe(true);
+      expect(result.hasFinalReport).toBe(false);
+      expect(result.reason).toContain("SILENT");
+    });
+
+    it("should handle assistant response after tool results", () => {
+      const messages: SessionMessage[] = [
+        { role: "user", content: "Review code" },
+        { role: "assistant", content: "Let me check", tool_calls: [{ function: { name: "read_file" } }] },
+        { role: "tool", content: "File contents..." },
+        { role: "assistant", content: "After reviewing the code, I found several issues that need addressing. The main concerns are..." },
+      ];
+      const result = validateSessionCompletion(messages);
+      expect(result.completed).toBe(true);
+      expect(result.hasFinalReport).toBe(true);
+    });
+  });
+
+  describe("incomplete sessions", () => {
+    it("should detect too-short assistant response as incomplete", () => {
+      const messages: SessionMessage[] = [
+        { role: "user", content: "Review code" },
+        { role: "assistant", content: "OK" },
+      ];
+      const result = validateSessionCompletion(messages);
+      expect(result.completed).toBe(false);
+      expect(result.reason).toContain("too short");
+    });
+
+    it("should detect assistant with tool_calls as potentially interrupted", () => {
+      const messages: SessionMessage[] = [
+        { role: "user", content: "Review code" },
+        { role: "assistant", content: "Let me read the files first", tool_calls: [{ function: { name: "read_file" } }] },
+        { role: "tool", content: "file data..." },
+        { role: "assistant", content: "Now checking more files", finish_reason: "tool_calls", tool_calls: [{ function: { name: "read_file" } }] },
+      ];
+      const result = validateSessionCompletion(messages);
+      expect(result.completed).toBe(false);
+    });
+  });
+
+  describe("edge cases", () => {
+    it("should handle session with only user message", () => {
+      const messages: SessionMessage[] = [
+        { role: "user", content: "Hello" },
+      ];
+      const result = validateSessionCompletion(messages);
+      expect(result.completed).toBe(false);
+    });
+
+    it("should handle system message as last", () => {
+      const messages: SessionMessage[] = [
+        { role: "user", content: "Hello" },
+        { role: "assistant", content: "Hi there, how can I help you today with this project?" },
+        { role: "system", content: "Session ended" },
+      ];
+      const result = validateSessionCompletion(messages);
+      expect(result.completed).toBe(false);
+      expect(result.reason).toContain("unexpected");
+    });
   });
 });

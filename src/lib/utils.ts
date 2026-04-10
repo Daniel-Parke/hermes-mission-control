@@ -126,3 +126,116 @@ export function messageSummary(content: string | undefined): string {
   const trimmed = firstNonEmpty.slice(0, 120);
   return trimmed + (firstNonEmpty.length > 120 || hasMoreContent ? "..." : "");
 }
+
+// ── Session Completion Validation ──────────────────────────────
+
+export interface SessionMessage {
+  role?: string;
+  content?: string;
+  finish_reason?: string;
+  tool_calls?: unknown[];
+  [key: string]: unknown;
+}
+
+export interface SessionValidationResult {
+  completed: boolean;
+  reason: string;
+  timedOut: boolean;
+  hasFinalReport: boolean;
+  lastMessageRole: string;
+}
+
+/**
+ * Validate whether a cron/mission session actually completed successfully.
+ *
+ * A session is considered completed only if:
+ * 1. The last message is from the assistant (not a tool result)
+ * 2. The assistant produced a meaningful response (not just tool calls)
+ *
+ * A session is timed out if:
+ * - The last message is a tool result (agent was killed before responding)
+ * - The finish_reason is "tool_calls" on the last assistant message (was about to do more work)
+ */
+export function validateSessionCompletion(
+  messages: SessionMessage[],
+  timeoutMinutes?: number,
+  sessionCreated?: string
+): SessionValidationResult {
+  if (messages.length === 0) {
+    return { completed: false, reason: "empty session", timedOut: false, hasFinalReport: false, lastMessageRole: "none" };
+  }
+
+  const lastMsg = messages[messages.length - 1];
+  const lastRole = lastMsg.role || "unknown";
+  const lastContent = typeof lastMsg.content === "string" ? lastMsg.content : "";
+  const lastFinishReason = lastMsg.finish_reason || "";
+
+  // Check for timeout: session duration exceeds expected timeout
+  let timedOut = false;
+  if (timeoutMinutes && sessionCreated) {
+    try {
+      const created = new Date(sessionCreated).getTime();
+      const elapsed = (Date.now() - created) / 60000; // minutes
+      if (elapsed > timeoutMinutes * 1.1) { // 10% grace
+        timedOut = true;
+      }
+    } catch {}
+  }
+
+  // Last message is a tool result — agent was interrupted before responding
+  if (lastRole === "tool") {
+    return {
+      completed: false,
+      reason: "interrupted: last message is a tool result, agent never responded",
+      timedOut: true,
+      hasFinalReport: false,
+      lastMessageRole: lastRole,
+    };
+  }
+
+  // Last assistant message has tool_calls — agent was about to do more work
+  if (lastRole === "assistant" && lastFinishReason === "tool_calls" && messages.length > 1) {
+    // Check if there's a response after the tool calls were made
+    const toolResults = messages.slice(messages.length - 3).filter((m) => m.role === "tool");
+    if (toolResults.length > 0) {
+      return {
+        completed: false,
+        reason: "interrupted: assistant issued tool calls but was killed before processing results",
+        timedOut: true,
+        hasFinalReport: false,
+        lastMessageRole: lastRole,
+      };
+    }
+  }
+
+  // Check for completion signals
+  const hasGoalDone = lastContent.includes("GOAL_DONE");
+  const hasSilent = lastContent.trim() === "[SILENT]";
+  const hasMeaningfulContent = lastContent.trim().length > 50;
+
+  // Last message is from assistant with meaningful content
+  if (lastRole === "assistant") {
+    if (hasSilent) {
+      return { completed: true, reason: "completed: agent signaled [SILENT]", timedOut, hasFinalReport: false, lastMessageRole: lastRole };
+    }
+    if (hasGoalDone || hasMeaningfulContent) {
+      return { completed: true, reason: "completed: assistant produced final response", timedOut, hasFinalReport: true, lastMessageRole: lastRole };
+    }
+    return {
+      completed: false,
+      reason: "incomplete: assistant response is too short (< 50 chars), likely truncated",
+      timedOut,
+      hasFinalReport: false,
+      lastMessageRole: lastRole,
+    };
+  }
+
+  // System or other message last
+  return {
+    completed: false,
+    reason: `unexpected: last message role is "${lastRole}"`,
+    timedOut: timedOut || lastRole !== "user",
+    hasFinalReport: false,
+    lastMessageRole: lastRole,
+  };
+}

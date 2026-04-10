@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 // ═══════════════════════════════════════════════════════════════
 
 import { HERMES_HOME, PATHS, getDefaultModelConfig } from "@/lib/hermes";
-import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, unlinkSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, unlinkSync, statSync } from "fs";
 import { validateSessionCompletion, SessionMessage } from "@/lib/utils";
 
 const DATA_DIR = PATHS.missions;
@@ -111,6 +111,8 @@ function findCronJobForMission(missionId: string): CronJobData | null {
 }
 
 // ── Find sessions that ran a specific cron job ────────────────
+// PERFORMANCE: Match by filename pattern (session_cron_<jobId>_*.json)
+// instead of reading every file's content. O(directory listing) vs O(N file reads).
 
 function findSessionsForCronJob(cronJobId: string): Array<{ id: string; modified: string; size: number }> {
   if (!existsSync(SESSIONS_DIR)) return [];
@@ -119,18 +121,16 @@ function findSessionsForCronJob(cronJobId: string): Array<{ id: string; modified
     const results: Array<{ id: string; modified: string; size: number }> = [];
     for (const file of files) {
       if (!file.endsWith(".json") && !file.endsWith(".jsonl")) continue;
+      // Match by filename pattern — cron sessions contain the job ID in the filename
+      if (!file.includes(cronJobId)) continue;
       const filePath = SESSIONS_DIR + "/" + file;
       try {
-        const content = readFileSync(filePath, "utf-8");
-        // Check if session references this cron job
-        if (content.includes(cronJobId)) {
-          const stat = existsSync(filePath) ? { mtime: new Date(), size: content.length } : null;
-          results.push({
-            id: file.replace(/\.(json|jsonl)$/, ""),
-            modified: stat ? stat.mtime.toISOString() : "",
-            size: stat ? stat.size : 0,
-          });
-        }
+        const stat = statSync(filePath);
+        results.push({
+          id: file.replace(/\.(json|jsonl)$/, ""),
+          modified: stat.mtime.toISOString(),
+          size: stat.size,
+        });
       } catch {}
     }
     return results.sort((a, b) => new Date(b.modified).getTime() - new Date(a.modified).getTime()).slice(0, 5);
@@ -453,6 +453,10 @@ export async function GET(request: Request) {
     const files = existsSync(DATA_DIR) ? readdirSync(DATA_DIR).filter((f) => f.endsWith(".json")) : [];
     const missions: Array<MissionRecord & { cronJob?: { state: string; lastRun: string | null; lastStatus: string | null } }> = [];
 
+    // PERFORMANCE: Read cron jobs once, build lookup map instead of re-reading per mission
+    const allCronJobs = readCronJobs();
+    const cronJobMap = new Map(allCronJobs.map((j) => [j.mission_id, j]));
+
     for (const file of files) {
       try {
         const content = readFileSync(DATA_DIR + "/" + file, "utf-8");
@@ -460,7 +464,7 @@ export async function GET(request: Request) {
 
         // Attach cron job status if linked, and derive mission status
         if (m.cronJobId) {
-          const job = findCronJobForMission(m.id);
+          const job = cronJobMap.get(m.id) || null;
           if (job) {
             // Derive display state
             let derivedState = job.state || "unknown";

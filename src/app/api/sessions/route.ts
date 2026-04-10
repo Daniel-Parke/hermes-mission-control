@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { readFileSync, readdirSync, existsSync, statSync } from "fs";
+import { readdirSync, existsSync, statSync } from "fs";
 
 import { HERMES_HOME, PATHS } from "@/lib/hermes";
 import { ApiResponse } from "@/types/hermes";
@@ -18,26 +18,28 @@ export async function GET() {
       (f) => f.endsWith(".json") || f.endsWith(".jsonl")
     );
 
+    // PERFORMANCE: Use statSync for metadata, only parse JSON for title/source.
+    // Skip message counting in list view — it requires parsing the entire file.
+    // Model/source can be derived from filename for cron sessions.
     const sessions = sessionFiles.map((file) => {
       const fullPath = sessionsPath + "/" + file;
       const stats = statSync(fullPath);
 
-      // Try to read session metadata
+      // Extract lightweight metadata from filename pattern
+      // Patterns: session_cron_<jobId>_<date>.json, session_<date>_<hash>.json
       let title = "";
-      let messageCount = 0;
-      let model = "";
       let source = "";
 
-      try {
-        if (file.endsWith(".json")) {
-          const content = readFileSync(fullPath, "utf-8");
-          const data = JSON.parse(content);
-          title = data.title || data.name || "";
-          messageCount = data.messages?.length || 0;
-          model = data.model || "";
-          source = data.source || "";
+      if (file.startsWith("session_cron_")) {
+        source = "cron";
+        // Derive title from filename: session_cron_<jobId>_<date>.json
+        const parts = file.replace(/\.(json|jsonl)$/, "").split("_");
+        if (parts.length >= 4) {
+          title = "Cron: " + parts[2] + " — " + parts.slice(3).join(" ");
         }
-      } catch (err) { logApiError("GET /api/sessions", "reading session file " + file, err); }
+      } else if (file.startsWith("session_")) {
+        source = "cli";
+      }
 
       return {
         id: file.replace(/\.(json|jsonl)$/, ""),
@@ -46,8 +48,8 @@ export async function GET() {
         size: stats.size,
         created: stats.birthtime.toISOString(),
         modified: stats.mtime.toISOString(),
-        messageCount,
-        model,
+        messageCount: 0, // Not computed in list view — too expensive (requires full JSON parse)
+        model: "",
         source,
       };
     });

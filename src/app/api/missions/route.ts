@@ -6,6 +6,7 @@ import { NextResponse } from "next/server";
 import { HERMES_HOME, PATHS, getDefaultModelConfig } from "@/lib/hermes";
 import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, unlinkSync, statSync } from "fs";
 import { validateSessionCompletion, SessionMessage } from "@/lib/utils";
+import { logApiError } from "@/lib/api-logger";
 
 const DATA_DIR = PATHS.missions;
 const CRON_PATH = PATHS.cronJobs;
@@ -94,7 +95,8 @@ function readCronJobs(): CronJobData[] {
   try {
     const data = JSON.parse(readFileSync(CRON_PATH, "utf-8"));
     return Array.isArray(data.jobs) ? data.jobs : [];
-  } catch {
+  } catch (err) {
+    logApiError("missions/findSessionsForCronJob", "scanning session files", err);
     return [];
   }
 }
@@ -528,6 +530,7 @@ export async function GET(request: Request) {
       },
     });
   } catch (err) {
+    logApiError("GET /api/missions", "listing missions", err);
     return NextResponse.json({ error: "Failed to list missions" }, { status: 500 });
   }
 }
@@ -778,7 +781,8 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });
-  } catch {
+  } catch (err) {
+    logApiError("POST /api/missions", "processing request", err);
     return NextResponse.json({ error: "Failed to process request" }, { status: 500 });
   }
 }

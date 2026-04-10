@@ -82,7 +82,8 @@ export async function GET(
         linkedFiles,
       },
     });
-  } catch {
+  } catch (err) {
+    logApiError("GET /api/skills/[...path]","reading skill",err);
     return NextResponse.json(
       { error: "Failed to read skill" },
       { status: 500 }

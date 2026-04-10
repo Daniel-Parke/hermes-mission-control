@@ -42,6 +42,9 @@ import {
   AlertTriangle,
   Check,
   Download,
+  Gamepad2,
+  Palette,
+  BookOpen,
 } from "lucide-react";
 import type { AccentColor } from "@/types/hermes";
 import { iconColorMap } from "@/lib/theme";
@@ -75,6 +78,15 @@ const mainSections: SidebarSection[] = [
       { icon: Database, label: "Memory", href: "/memory", color: "pink" },
       { icon: Globe, label: "Gateway", href: "/gateway", color: "cyan" },
       { icon: ScrollText, label: "Logs", href: "/logs", color: "cyan" },
+    ],
+  },
+  {
+    label: "Rec Room",
+    links: [
+      { icon: Gamepad2, label: "Hub", href: "/recroom", color: "purple" },
+      { icon: Palette, label: "Creative Canvas", href: "/recroom/creative-canvas", color: "cyan" },
+      { icon: Terminal, label: "ASCII Studio", href: "/recroom/ascii-studio", color: "green" },
+      { icon: BookOpen, label: "Story Weaver", href: "/recroom/story-weaver", color: "purple" },
     ],
   },
   {

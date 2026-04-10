@@ -21,6 +21,7 @@ A command centre dashboard for [Hermes Agent](https://github.com/NousResearch/he
   - [Memory](#memory)
   - [Gateway](#gateway)
   - [Skills & Tools](#skills--tools)
+  - [Rec Room](#rec-room)
   - [Tips](#tips)
 - [Managing Mission Control](#managing-mission-control)
   - [Install](#install)
@@ -47,6 +48,7 @@ A command centre dashboard for [Hermes Agent](https://github.com/NousResearch/he
 | **Memory CRUD** | Manage holographic memory facts |
 | **Skills Browser** | Browse and view installed skills |
 | **Tools Manager** | Toggle toolsets per platform (Discord, Telegram, CLI, etc.) |
+| **Rec Room** | Creative activities — generative art, ASCII art, interactive stories |
 
 ---
 
@@ -253,6 +255,26 @@ Connected platforms show a green indicator with pulse animation.
 - **Tools** (`Agent -> Tools`) — Toggle which toolsets are available per platform. Disable browser access on Discord but keep it on CLI? This is where you do it.
 
 ---
+
+### Rec Room
+
+The Rec Room is a creative playground where you describe what you want to create and your agent brings it to life.
+
+**Three activities:**
+
+| Activity | What it does |
+|----------|-------------|
+| **Creative Canvas** | Generate interactive p5.js animations from any description — literal ("solar system") to abstract ("what does pain look like?") |
+| **ASCII Studio** | Create ASCII art from prompts, convert images, generate text banners with 571 fonts, and animate your creations |
+| **Story Weaver** | Build interactive fiction collaboratively — configure your world, navigate page-by-page, steer the narrative |
+
+**How it works:**
+1. Pick an activity from the Rec Room hub or sidebar
+2. Type what you want to create
+3. Click "Enhance & Create" — your agent interprets and generates
+4. Refine, save, and export your creations
+
+All activities use your configured LLM provider — no extra setup needed.
 
 ### Tips
 

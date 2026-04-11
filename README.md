@@ -126,6 +126,8 @@ Browse conversation transcripts across all gateway platforms. Filter by platform
 
 Create, edit, search, and delete holographic memory facts. The memory system helps your agent remember context across sessions.
 
+**Note:** Mission Control supports the [Holographic Memory](https://github.com/NousResearch/hermes-agent) plugin. If holographic memory is not installed, the Memory page will show an install notice and the dashboard will display "Not Installed" — the rest of the dashboard continues to work normally.
+
 ---
 
 ## Managing Mission Control
@@ -253,7 +255,7 @@ All API routes import paths from `src/lib/hermes.ts`. The app reads from `~/.her
 ```bash
 npm run dev           # Start dev server with hot reload
 npm run build         # Production build
-npm run test          # Run test suite (68 tests)
+npm run test          # Run test suite (87 tests)
 npm run start         # Production server (localhost only)
 npm run start:network # Production server (accessible on LAN)
 ```

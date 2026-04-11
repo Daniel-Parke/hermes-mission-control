@@ -2,7 +2,7 @@
 
 A command centre dashboard for [Hermes Agent](https://github.com/NousResearch/hermes-agent). Monitor your agent fleet, dispatch missions, manage configurations, and control everything from one place.
 
-![Dashboard](screenshots/dashboard.png)
+![Dashboard](screenshots/Hermes_Dashboard.png)
 
 ---
 
@@ -65,6 +65,8 @@ The dashboard is your command centre. At a glance you see:
 
 Everything auto-refreshes every 10 seconds.
 
+---
+
 ### Dispatching Missions
 
 Click any template to dispatch instantly, or write a custom prompt. Missions appear under "Active Missions" with a status badge:
@@ -76,7 +78,41 @@ Click any template to dispatch instantly, or write a custom prompt. Missions app
 | **Successful** | Green | Completed successfully |
 | **Failed** | Red | Error or cancelled |
 
-### Story Weaver
+---
+
+### Cron Jobs
+
+Schedule recurring tasks: every 15m, every 2h, cron expressions, or one-shot at a specific time. Jobs run autonomously and deliver results to your configured platform.
+
+### Agent Behaviour
+
+Edit the files that define your agent's personality and rules:
+- **SOUL.md** — personality traits
+- **HERMES.md** — priority instructions
+- **AGENTS.md** — development context
+- **USER.md** — user profile
+
+---
+
+### Configuration
+
+Edit `config.yaml` with 27 organised sections. Changes are validated before saving and a backup is created automatically.
+
+### Sessions
+
+Browse conversation transcripts across all gateway platforms. Filter by platform, search by content, and view full message histories.
+
+---
+
+### Memory
+
+Create, edit, search, and delete holographic memory facts. The memory system helps your agent remember context across sessions.
+
+**Note:** Mission Control supports the [Holographic Memory](https://github.com/NousResearch/hermes-agent) plugin. If holographic memory is not installed, the Memory page will show an install notice and the dashboard will display "Not Installed" — the rest of the dashboard continues to work normally.
+
+---
+
+## Story Weaver (WIP)
 
 Collaborative interactive fiction powered by your agent. Create stories from 8 pre-built templates or build your own from scratch.
 
@@ -102,35 +138,9 @@ Collaborative interactive fiction powered by your agent. Create stories from 8 p
 - Kindle-style reading settings (font, size, theme, spacing)
 - Library with full CRUD
 
-### Cron Jobs
-
-Schedule recurring tasks: every 15m, every 2h, cron expressions, or one-shot at a specific time. Jobs run autonomously and deliver results to your configured platform.
-
-### Agent Behaviour
-
-Edit the files that define your agent's personality and rules:
-- **SOUL.md** — personality traits
-- **HERMES.md** — priority instructions
-- **AGENTS.md** — development context
-- **USER.md** — user profile
-
-### Configuration
-
-Edit `config.yaml` with 27 organised sections. Changes are validated before saving and a backup is created automatically.
-
-### Sessions
-
-Browse conversation transcripts across all gateway platforms. Filter by platform, search by content, and view full message histories.
-
-### Memory
-
-Create, edit, search, and delete holographic memory facts. The memory system helps your agent remember context across sessions.
-
-**Note:** Mission Control supports the [Holographic Memory](https://github.com/NousResearch/hermes-agent) plugin. If holographic memory is not installed, the Memory page will show an install notice and the dashboard will display "Not Installed" — the rest of the dashboard continues to work normally.
-
 ---
 
-## Managing Mission Control
+## Managing Mission Control Dashboard
 
 ### Install
 
@@ -226,28 +236,109 @@ All API routes import paths from `src/lib/hermes.ts`. The app reads from `~/.her
 
 ---
 
-## Screenshots
+## 📸 Screenshots
 
-![Dashboard](screenshots/dashboard.png)
+Explore the core interfaces of the **Hermes Agent Mission Control** platform below.
+
+---
+
+### 🧭 Main Dashboard
+
+![Main Dashboard](screenshots/Hermes_Dashboard.png)
+
+**Central command hub for your entire system**
+
+Monitor active agents, track mission progress, review system health, and quickly navigate to key areas.
+
+---
+
+### 🚀 Mission Dispatch
 
 ![Mission Dispatch](screenshots/Mission_Dispatch.png)
 
+**Create and launch missions with precision**
+
+Configure mission parameters, assign agents, and dispatch tasks in real time.
+
+---
+
+### 🧩 Mission Template
+
+![Mission Template](screenshots/Mission_Template.png)
+
+**Reusable blueprints for repeatable workflows**
+
+Standardize common operations and reduce setup time for recurring tasks.
+
+---
+
+### 📄 Mission Page
+
 ![Mission Page](screenshots/Mission_Page.png)
 
-![Cron Job](screenshots/Cron_Job.png)
+**Detailed mission execution view**
 
-![Sessions](screenshots/sessions.png)
+Access status, logs, outputs, and performance metrics in one place.
 
-![Memory](screenshots/memory.png)
+---
 
-![Story Weaver](screenshots/story-weaver.png)
+### ⏱️ Cron Jobs
+
+![Cron Jobs](screenshots/Cron_Job.png)
+
+**Automate recurring missions**
+
+Manage scheduled workflows with full lifecycle visibility.
+
+---
+
+### 🧠 Agent Behaviour
 
 ![Agent Behaviour](screenshots/Agent_Behaviour.png)
 
-![Skills](screenshots/skills.png)
+**Define agent logic and responses**
 
-![Tools](screenshots/tools.png)
+Control decision-making patterns and behavioural rules.
 
+---
+
+### 🎭 Agent Personalities
+
+![Agent Personalities](screenshots/Agent_Personalities.png)
+
+**Customize interaction styles**
+
+Shape how agents communicate and behave across missions.
+
+---
+
+### 🛠️ Agent Skills
+
+![Agent Skills](screenshots/Agent_Skills.png)
+
+**Extend agent capabilities**
+
+Configure the actions and functions available to agents.
+
+---
+
+### 🔌 Agent Tools
+
+![Agent Tools](screenshots/Agent_Tools.png)
+
+**Integrations and external tooling**
+
+Manage tools and third-party services agents can use.
+
+---
+
+### ⚙️ Agent Configuration
+
+![Agent Configuration](screenshots/Agent_Configuration.png)
+
+**Full agent control panel**
+
+Adjust permissions, capabilities, and operational settings.
 ---
 
 ## Development

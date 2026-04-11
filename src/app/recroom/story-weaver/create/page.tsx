@@ -49,6 +49,7 @@ export default function CreateStoryPage() {
   const [generating, setGenerating] = useState(false);
   const [genChapters, setGenChapters] = useState<{number: number; status: string}[]>([]);
   const [title, setTitle] = useState("");
+  const [titleManuallyEdited, setTitleManuallyEdited] = useState(false);
   const [premise, setPremise] = useState(STORY_TEMPLATES[0].premise);
   const [genres, setGenres] = useState<string[]>([...STORY_TEMPLATES[0].genre]);
   const [era, setEra] = useState(STORY_TEMPLATES[0].era);
@@ -70,7 +71,8 @@ export default function CreateStoryPage() {
     if (!t) return;
     setPremise(t.premise); setGenres([...t.genre]); setEra(t.era); setMoods([...t.moods]);
     setSetting(t.setting); setPov(t.pov); setLength(t.length); setCharacters([...t.characters]);
-    if (!title) setTitle(t.name);
+    // Only set title if user hasn't manually edited it
+    if (!titleManuallyEdited) setTitle(t.name);
   };
 
   const toggle = (list: string[], set: (v: string[]) => void, tag: string) =>
@@ -81,7 +83,11 @@ export default function CreateStoryPage() {
   const handleCreate = useCallback(async () => {
     if (!premise.trim()) return;
     setGenerating(true);
-    setGenChapters([{ number: 0, status: "writing" }]);
+    setGenChapters([
+      { number: -1, status: "writing" }, // Bible generation
+      { number: 0, status: "pending" },   // Chapter 1
+      { number: -2, status: "pending" },  // Summary
+    ]);
 
     try {
       const res = await fetch("/api/stories", {
@@ -89,14 +95,19 @@ export default function CreateStoryPage() {
         body: JSON.stringify({
           action: "create",
           title: title || "Untitled Story",
-          config: { premise, genre: genres.join(", "), era, setting, mood: moods, pov, length, characters, wordCountRange },
+          config: { title: title || "Untitled Story", premise, genre: genres.join(", "), era, setting, mood: moods, pov, length, characters, wordCountRange },
         }),
       });
       const d = await res.json();
       if (d.error) throw new Error(d.error);
 
-      // Chapter 1 is complete
-      setGenChapters([{ number: 0, status: "complete" }, ...d.data.chapters.slice(1).map((c: any) => ({ number: c.number, status: "pending" }))]);
+      // All steps complete
+      setGenChapters([
+        { number: -1, status: "complete" },
+        { number: 0, status: "complete" },
+        { number: -2, status: "complete" },
+        ...d.data.chapters.slice(1).map((c: Record<string, unknown>) => ({ number: c.number as number, status: "pending" })),
+      ]);
 
       // Brief pause then redirect
       await new Promise(r => setTimeout(r, 1000));
@@ -125,7 +136,7 @@ export default function CreateStoryPage() {
         {/* Title */}
         <div className="rounded-xl border border-purple-500/20 bg-dark-900/50 p-5">
           <label className="text-xs font-mono text-white/40 uppercase tracking-widest block mb-2">Story Title</label>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Give your story a name..."
+          <input value={title} onChange={(e) => { setTitle(e.target.value); setTitleManuallyEdited(true); }} placeholder="Give your story a name..."
             className="w-full bg-dark-800/50 border border-white/10 rounded-lg px-4 py-3 text-lg text-white placeholder-white/20 outline-none focus:border-purple-500/30 font-serif font-semibold" />
         </div>
 

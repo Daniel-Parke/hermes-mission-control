@@ -45,11 +45,14 @@ export default function StoryReaderPage() {
 
   useEffect(() => { loadStory(); }, [loadStory]);
 
-  // Auto-generate next pending chapter
+  // Auto-generate next pending chapter — only trigger when NOT generating
+  // and only for the FIRST pending chapter (sequential enforcement)
   useEffect(() => {
     if (!story || generating) return;
-    const pending = story.chapters?.find((c: Chapter) => c.status === "pending");
-    if (pending && pending.status === "pending") {
+    const firstPending = story.chapters?.find((c: Chapter) => c.status === "pending");
+    const anyWriting = story.chapters?.some((c: Chapter) => c.status === "writing");
+    // Only generate if there's a pending chapter AND nothing is currently writing
+    if (firstPending && !anyWriting) {
       generateNext();
     }
   }, [story?.chapters]);

@@ -1,50 +1,59 @@
 // ═══════════════════════════════════════════════════════════════
-// Story Weaver — LLM Prompt Templates (v2 — quality-focused)
+// Story Weaver — LLM Prompt Templates (v3 — Story Bible pipeline)
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Combined plan + first chapter prompt.
- * Generates both the story plan and Chapter 1 in a single LLM call.
+ * Story Bible prompt — generates the immutable plot contract.
+ * This is the FIRST and most important LLM call.
+ * Output: structured JSON with fixed plot points, character arcs, chapter outlines.
  */
-export const PLAN_AND_CHAPTER_PROMPT = `You are a skilled novelist creating a new story. You will produce a detailed plan and the first chapter.
+export const STORY_BIBLE_PROMPT = `You are a master story architect. Your job is to create a detailed story bible that will serve as the immutable contract for writing every chapter.
 
-WRITING QUALITY STANDARDS:
-- Vary sentence length and structure. Mix short, punchy sentences with longer, descriptive ones.
-- Each paragraph should be 2-6 sentences. Never write walls of text.
-- Dialogue must sound natural — people interrupt, trail off, speak in fragments.
-- Show, don't tell. Convey emotion through action, dialogue, and sensory detail — not exposition.
-- Avoid starting consecutive sentences the same way. Vary sentence openers.
-- Avoid: "Little did they know...", "Suddenly...", "It was at that moment...", starting sentences with "He/She/It" repeatedly.
-- Use specific, concrete details rather than vague descriptions.
-- Balance action, dialogue, description, and introspection. Never linger too long on any one mode.
-- Each character must have a distinct voice. A captain doesn't speak like a scientist.
-- End paragraphs with weight. The last sentence of a paragraph should resonate.
+YOUR OUTPUT MUST BE VALID JSON. Nothing else. No commentary before or after.
 
-CONSISTENCY RULES:
-- Character names must be spelled exactly as specified. Never abbreviate or alter them.
-- Character traits, speech patterns, and knowledge must remain consistent.
-- World rules established in the plan are absolute — no contradictions.
-- POV must remain consistent throughout. If first person, never slip into third.
-- Tone and mood must match the specified genre and mood tags.
+WRITING QUALITY FOUNDATIONS (these apply to ALL chapters):
+- Vary sentence length and structure. Mix short, punchy sentences with longer descriptive ones.
+- Paragraphs: 2-6 sentences. Break at natural shifts in focus, speaker, or time.
+- Dialogue: natural, character-specific voices. People interrupt, trail off, use contractions.
+- Show, don't tell. Emotion through action and sensory detail, not exposition.
+- Avoid clichés: "Little did they know", "Suddenly", "It was at that moment".
+- Each character must have a distinct voice matching their personality and role.
 
-FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
+OUTPUT THIS EXACT JSON STRUCTURE:
+{
+  "storyArc": "Act 1: [setup and inciting incident]. Act 2: [rising action, complications, midpoint shift]. Act 3: [climax, resolution].",
+  "fixedPlotPoints": [
+    {"chapter": 1, "event": "Specific event that MUST happen in this chapter", "setup": "What must be planted in earlier chapters (if applicable)"},
+    {"chapter": 3, "event": "Another specific fixed event"}
+  ],
+  "characterArcs": [
+    {"name": "Character Name", "startingState": "Who they are at the start", "journey": "How they change across the story", "endingState": "Who they become"}
+  ],
+  "worldRules": ["Immutable fact about the world", "Another rule"],
+  "themes": ["Central theme", "Secondary theme"],
+  "chapterOutlines": [
+    {"number": 1, "title": "Chapter Title", "purpose": "What this chapter accomplishes for the overall story", "keyBeats": ["Specific scene/event 1", "Specific scene/event 2"], "emotionalTone": "Feel of this chapter", "setupForNext": "What to plant for the next chapter"}
+  ]
+}
 
-===PLAN===
-{"title":"...","premise":"...","chapters":[{"title":"...","key_events":["..."],"emotional_beat":"...","deviation_hooks":["..."]}],"character_notes":["..."],"world_rules":["...]}
-
-===CHAPTER 1===
-[Your chapter prose here — 800-1500 words. Follow the formatting standards above. No headers or meta-commentary.]`;
+CRITICAL RULES:
+- fixedPlotPoints must be SPECIFIC. Not "something happens" but "Captain Torres reveals he hired Vivian — the detective was set up from the start."
+- chapterOutlines must cover EVERY chapter in the story. Each chapter needs key beats.
+- Every fixed plot point must have a corresponding chapter outline entry.
+- Character arcs must show clear transformation — starting state, journey, ending state.
+- World rules are IMMUTABLE. Once established, they cannot be contradicted.
+- Themes should be woven through multiple chapters, not resolved in one.
+- The story must have a satisfying beginning, middle, and end.
+- Plant foreshadowing in early chapters for events in later chapters.
+- Ensure the story length matches the requested chapter count.`;
 
 /**
- * Chapter generation prompt — used for all chapters after the first.
+ * Chapter generation prompt — used for ALL chapters.
+ * Receives: master prompt + story bible + rolling summary + previous chapter + chapter outline.
  */
-export const CHAPTER_PROMPT = `You are a skilled novelist writing the next chapter of a story.
+export const CHAPTER_PROMPT = `You are a skilled novelist writing a chapter of a story.
 
-CONTEXT: You have the complete story plan and all previous chapters. You understand:
-- Where the story has been (all previous events, character arcs, emotional beats)
-- Where the story is going (the full plan, including future chapters)
-- What this specific chapter must accomplish (its key events and emotional beat)
-- How to maintain perfect continuity with everything that came before
+You are writing toward FIXED PLOT POINTS defined in the story bible. You must not deviate from these — they are the contract. Your creative freedom is in HOW you write, not WHAT happens.
 
 WRITING QUALITY STANDARDS:
 - Vary sentence length and structure. Mix short, punchy sentences with longer descriptive ones.
@@ -61,78 +70,60 @@ WRITING QUALITY STANDARDS:
 CONSISTENCY CHECKLIST (verify mentally before writing):
 - Character names spelled exactly as in previous chapters
 - Character speech patterns match established traits
-- World rules from the plan are respected — no contradictions
-- Tone and mood match the genre/mood tags
+- World rules from the bible are respected — no contradictions
 - Timeline is coherent — no contradictions with previous events
 - POV is consistent throughout
-- No facts established in previous chapters are contradicted
+- No facts established in previous chapters or the rolling summary are contradicted
+- This chapter's key beats from the outline are all addressed
 
 CHAPTER STRUCTURE:
 - Open with a hook that pulls the reader in immediately
-- Develop the chapter's key events from the plan with rich detail
+- Develop the chapter's key beats from the outline with rich detail
 - Include at least one moment of genuine character development
 - End with momentum — the reader must want the next chapter
-- No "Chapter X begins" headers — just prose
+- Do NOT include chapter headers, meta-commentary, or any text outside the prose
 
-Return ONLY the chapter text. Pure prose, nothing else.`;
+Return ONLY the chapter text. Pure prose, nothing else. No preamble, no "Here is your chapter", no summary at the end.`;
 
 /**
- * Summary prompt — compresses previous chapters into a rolling summary.
+ * Summary prompt — updates the rolling narrative summary after each chapter.
+ * Flexible length: 5 lines for simple stories, 20+ for complex ones.
  */
-export const SUMMARY_PROMPT = `You are a story summariser. Compress the following story content into 5-7 concise sentences.
+export const SUMMARY_PROMPT = `You are a story archivist maintaining a rolling narrative summary. Update the summary to include the new chapter's events.
+
+This summary is used as context for writing future chapters. It must capture EVERYTHING important that has happened so far.
 
 PRESERVE:
-- Key plot events and their consequences
-- Character development and relationship changes
+- ALL key plot events and their consequences (every significant thing that happened)
+- Character development and relationship changes (who grew, who changed, who was lost)
 - Important world-building details and established facts
 - Current situation and unresolved tensions
 - Character names and their roles
+- Foreshadowing that has been planted
+- Emotional states and character motivations
+- Physical locations and their significance
+- Items, objects, or information that matter to the plot
 
 OMIT:
-- Descriptive passages and atmosphere
-- Individual dialogue exchanges
-- Minor details that don't affect the main plot
+- Individual dialogue exchanges (summarize what was communicated, not exact words)
+- Minor atmospheric descriptions
+- Play-by-play of action sequences (summarize outcomes)
 
-The summary will be used as context for writing future chapters, so accuracy and completeness matter more than brevity.
+LENGTH: Be thorough. For a simple 3-chapter story, 5-10 lines may suffice. For a complex 10-chapter story, 20-30+ lines is acceptable and expected. Quality and completeness matter more than brevity.
 
-Return ONLY the summary text. No labels, no formatting.`;
+FORMAT: Write as flowing narrative prose. No bullet points, no headers. Just a continuous summary that reads naturally.
 
-/**
- * Formatting review prompt — post-generation quality pass.
- */
-export const FORMATTING_REVIEW_PROMPT = `You are a professional book editor reviewing a chapter for formatting quality. Your job is to improve READABILITY without changing the story.
-
-RULES:
-- Do NOT change plot events, character actions, or dialogue content
-- Do NOT add or remove story events
-- Do NOT change the author's voice or tone
-- ONLY fix formatting, structure, and presentation
-
-FIX THESE ISSUES:
-- Paragraphs longer than 6 sentences → split at natural breaks
-- Missing paragraph breaks after dialogue exchanges
-- Walls of text → break into digestible paragraphs
-- Run-on sentences → split or add punctuation
-- Inconsistent dialogue formatting (missing quotes, wrong attribution)
-- Repetitive sentence starters within a paragraph
-- Missing paragraph breaks at scene or time transitions
-
-PRESERVE:
-- All story content, plot events, character actions
-- Dialogue wording (only fix formatting, not content)
-- Author's voice, tone, and style
-- Chapter structure and pacing
-
-Return the full chapter text with formatting improvements applied. Do not add commentary or explanations.`;
+Return ONLY the updated summary text. Nothing else.`;
 
 // ── Prompt Resolution ────────────────────────────────────────
 
-export function getStoryPrompt(phase: "plan" | "chapter" | "summary" | "format"): string {
-  const prompts: Record<string, string> = {
-    plan: PLAN_AND_CHAPTER_PROMPT,
+export type StoryPhase = "bible" | "chapter" | "summary";
+
+export function getStoryPrompt(phase: StoryPhase): string {
+  const prompts: Record<StoryPhase, string> = {
+    bible: STORY_BIBLE_PROMPT,
     chapter: CHAPTER_PROMPT,
     summary: SUMMARY_PROMPT,
-    format: FORMATTING_REVIEW_PROMPT,
   };
   return prompts[phase] || CHAPTER_PROMPT;
 }
@@ -158,6 +149,9 @@ export const LOADING_MESSAGES = [
   // Poetic
   "Spinning tales of wonder...", "The story writes itself... almost...",
   "Dawn breaks on page one...", "Magic seeping into words...", "Tales older than time...",
+  // Bible-specific
+  "Architecting your story...", "Plot points crystallising...", "World rules taking shape...",
+  "Character arcs emerging...", "The story bible forms...",
 ];
 
 export const CHAPTER_STATUSES: Record<string, string> = {

@@ -1,13 +1,12 @@
 // ═══════════════════════════════════════════════════════════════
-// Skills Manager — Profile-aware skills with inline toggles
+// Skills Manager — Profile-aware with collapsible categories
 // ═══════════════════════════════════════════════════════════════
 
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
 import {
-  FileText, FolderOpen, ChevronRight, ChevronDown,
-  Check, X, Eye, ToggleLeft, ToggleRight, Save,
+  FileText, ChevronDown, ChevronRight, Eye, ToggleLeft, ToggleRight, Save,
 } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import { SearchInput } from "@/components/ui/Input";
@@ -38,31 +37,27 @@ export default function SkillsPage() {
   const [data, setData] = useState<SkillsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedProfile, setSelectedProfile] = useState("default");
   const [profiles, setProfiles] = useState<Array<{ id: string; name: string }>>([]);
   const [pendingToggles, setPendingToggles] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
   const [expandedSkill, setExpandedSkill] = useState<string | null>(null);
   const [skillContent, setSkillContent] = useState<string>("");
-  const [skillLoading, setSkillLoading] = useState(false);
   const toast = useToast();
 
-  // Load profiles
   useEffect(() => {
     fetch("/api/agent/profiles")
       .then((res) => res.json())
       .then((d) => {
         const ps = (d.data?.profiles || []).map((p: { id: string; name: string }) => ({
-          id: p.id,
-          name: p.name,
+          id: p.id, name: p.name,
         }));
         setProfiles(ps);
       })
       .catch(() => {});
   }, []);
 
-  // Load skills
   const loadSkills = useCallback(async () => {
     setLoading(true);
     try {
@@ -70,6 +65,11 @@ export default function SkillsPage() {
       const d = await res.json();
       setData(d.data);
       setPendingToggles({});
+      // Auto-expand first 2 categories
+      const cats = Object.keys(d.data?.categories || {});
+      const expanded: Record<string, boolean> = {};
+      cats.slice(0, 2).forEach((c) => (expanded[c] = true));
+      setExpandedCategories(expanded);
     } catch {
       toast.showToast("Failed to load skills", "error");
     } finally {
@@ -80,10 +80,7 @@ export default function SkillsPage() {
   useEffect(() => { loadSkills(); }, [loadSkills]);
 
   const toggleSkill = (skillName: string, currentEnabled: boolean) => {
-    setPendingToggles((prev) => ({
-      ...prev,
-      [skillName]: !currentEnabled,
-    }));
+    setPendingToggles((prev) => ({ ...prev, [skillName]: !currentEnabled }));
   };
 
   const saveToggles = async () => {
@@ -107,21 +104,14 @@ export default function SkillsPage() {
   };
 
   const viewSkill = async (skill: Skill) => {
-    if (expandedSkill === skill.name) {
-      setExpandedSkill(null);
-      return;
-    }
+    if (expandedSkill === skill.name) { setExpandedSkill(null); return; }
     setExpandedSkill(skill.name);
-    setSkillLoading(true);
     try {
-      // Read skill content from the path
-      const res = await fetch(`/api/skills/${encodeURIComponent(skill.name)}`);
+      const res = await fetch(`/api/skills/${encodeURIComponent(skill.name)}?profile=${selectedProfile}`);
       const d = await res.json();
-      setSkillContent(d.data?.content || d.content || "");
+      setSkillContent(d.data?.content || "");
     } catch {
-      setSkillContent("// Failed to load skill content");
-    } finally {
-      setSkillLoading(false);
+      setSkillContent("// Failed to load");
     }
   };
 
@@ -130,20 +120,24 @@ export default function SkillsPage() {
     return skill.enabled;
   };
 
-  const filteredSkills =
-    data?.skills.filter((skill) => {
-      const matchesSearch =
-        !search ||
-        skill.name.toLowerCase().includes(search.toLowerCase()) ||
-        skill.description.toLowerCase().includes(search.toLowerCase());
-      const matchesCategory =
-        !selectedCategory || skill.category.startsWith(selectedCategory);
-      return matchesSearch && matchesCategory;
-    }) || [];
-
   const categories = data?.categories || {};
   const enabledCount = data?.skills.filter((s) => isSkillEnabled(s)).length || 0;
   const hasPendingChanges = Object.keys(pendingToggles).length > 0;
+
+  // Filter skills by search
+  const filteredCategories = Object.entries(categories).reduce(
+    (acc, [cat, skills]) => {
+      const filtered = skills.filter(
+        (s) =>
+          !search ||
+          s.name.toLowerCase().includes(search.toLowerCase()) ||
+          s.description.toLowerCase().includes(search.toLowerCase())
+      );
+      if (filtered.length > 0) acc[cat] = filtered;
+      return acc;
+    },
+    {} as Record<string, Skill[]>
+  );
 
   return (
     <div className="min-h-screen bg-dark-950 grid-bg">
@@ -154,7 +148,6 @@ export default function SkillsPage() {
         color="green"
         actions={
           <div className="flex items-center gap-3">
-            {/* Profile Selector */}
             <select
               value={selectedProfile}
               onChange={(e) => setSelectedProfile(e.target.value)}
@@ -165,14 +158,7 @@ export default function SkillsPage() {
               ))}
             </select>
             {hasPendingChanges && (
-              <Button
-                variant="primary"
-                color="green"
-                size="sm"
-                icon={Save}
-                onClick={saveToggles}
-                disabled={saving}
-              >
+              <Button variant="primary" color="green" size="sm" icon={Save} onClick={saveToggles} disabled={saving}>
                 {saving ? "Saving..." : `Save (${Object.keys(pendingToggles).length})`}
               </Button>
             )}
@@ -181,119 +167,88 @@ export default function SkillsPage() {
       />
 
       <div className="px-6 py-6">
-        {/* Search + Category Filter */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-6">
-          <div className="flex-1">
-            <SearchInput
-              value={search}
-              onChange={setSearch}
-              placeholder="Search skills..."
-              accentColor="green"
-            />
-          </div>
-          {Object.keys(categories).length > 1 && (
-            <div className="flex items-center gap-2 flex-wrap">
-              <FolderOpen className="w-4 h-4 text-white/30 flex-shrink-0" />
-              <button
-                onClick={() => setSelectedCategory(null)}
-                className={`text-xs font-mono px-2 py-1 rounded transition-colors ${
-                  !selectedCategory
-                    ? "bg-neon-green/20 text-neon-green"
-                    : "text-white/40 hover:text-white/60"
-                }`}
-              >
-                All
-              </button>
-              {Object.entries(categories).map(([cat, skills]) => (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat === selectedCategory ? null : cat)}
-                  className={`text-xs font-mono px-2 py-1 rounded transition-colors ${
-                    selectedCategory === cat
-                      ? "bg-neon-green/20 text-neon-green"
-                      : "text-white/40 hover:text-white/60"
-                  }`}
-                >
-                  {cat} ({skills.length})
-                </button>
-              ))}
-            </div>
-          )}
+        {/* Full Width Search */}
+        <div className="mb-6">
+          <SearchInput value={search} onChange={setSearch} placeholder="Search skills..." accentColor="green" />
         </div>
 
         {loading ? (
           <LoadingSpinner text="Loading skills..." />
-        ) : filteredSkills.length === 0 ? (
-          <EmptyState
-            icon={FileText}
-            title="No skills found"
-            description={search ? "Try a different search" : "No skills installed"}
-          />
+        ) : Object.keys(filteredCategories).length === 0 ? (
+          <EmptyState icon={FileText} title="No skills found" description={search ? "Try a different search" : "No skills installed"} />
         ) : (
-          <div className="space-y-1">
-            {filteredSkills.map((skill) => {
-              const enabled = isSkillEnabled(skill);
-              const isPending = skill.name in pendingToggles;
-              const isExpanded = expandedSkill === skill.name;
+          <div className="space-y-3">
+            {Object.entries(filteredCategories).map(([category, skills]) => {
+              const isExpanded = expandedCategories[category] ?? false;
+              const catEnabled = skills.filter((s) => isSkillEnabled(s)).length;
               return (
-                <div key={skill.name}>
-                  <div
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors group ${
-                      enabled ? "hover:bg-white/5" : "opacity-50 hover:opacity-70"
-                    } ${isPending ? "ring-1 ring-green-500/30" : ""}`}
+                <div key={category} className="rounded-xl border border-white/10 bg-dark-900/50">
+                  {/* Category Header */}
+                  <button
+                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/5 rounded-t-xl transition-colors"
+                    onClick={() =>
+                      setExpandedCategories((prev) => ({ ...prev, [category]: !isExpanded }))
+                    }
                   >
-                    {/* Toggle */}
-                    <button
-                      onClick={() => toggleSkill(skill.name, enabled)}
-                      className="flex-shrink-0"
-                      title={enabled ? "Disable" : "Enable"}
-                    >
-                      {enabled ? (
-                        <ToggleRight className="w-6 h-6 text-neon-green" />
+                    <div className="flex items-center gap-2">
+                      {isExpanded ? (
+                        <ChevronDown className="w-4 h-4 text-white/30" />
                       ) : (
-                        <ToggleLeft className="w-6 h-6 text-white/20" />
+                        <ChevronRight className="w-4 h-4 text-white/30" />
                       )}
-                    </button>
-
-                    {/* Skill Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-mono text-white/80">{skill.name}</span>
-                        {isPending && (
-                          <Badge color="green" size="sm">
-                            {pendingToggles[skill.name] ? "enabling" : "disabling"}
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-xs text-white/30 truncate">{skill.description}</p>
+                      <span className="text-sm font-semibold text-white/70">{category || "uncategorized"}</span>
+                      <Badge color="gray" size="sm">{catEnabled}/{skills.length}</Badge>
                     </div>
+                  </button>
 
-                    {/* Category Badge */}
-                    <Badge color="gray" size="sm">{skill.category}</Badge>
-
-                    {/* Actions */}
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        icon={Eye}
-                        onClick={() => viewSkill(skill)}
-                      >
-                        {isExpanded ? "Hide" : "View"}
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Expanded Skill Content */}
+                  {/* Skills List */}
                   {isExpanded && (
-                    <div className="ml-9 mr-3 mb-2 p-3 bg-dark-800/50 border border-white/5 rounded-lg">
-                      {skillLoading ? (
-                        <LoadingSpinner text="Loading..." />
-                      ) : (
-                        <pre className="text-xs text-white/60 font-mono whitespace-pre-wrap max-h-60 overflow-auto">
-                          {skillContent}
-                        </pre>
-                      )}
+                    <div className="border-t border-white/5">
+                      {skills.map((skill) => {
+                        const enabled = isSkillEnabled(skill);
+                        const isPending = skill.name in pendingToggles;
+                        const isSkillExpanded = expandedSkill === skill.name;
+                        return (
+                          <div key={skill.name}>
+                            <div
+                              className={`flex items-center gap-3 px-4 py-2.5 hover:bg-white/5 transition-colors group ${
+                                !enabled ? "opacity-50" : ""
+                              } ${isPending ? "ring-1 ring-green-500/30" : ""}`}
+                            >
+                              <button onClick={() => toggleSkill(skill.name, enabled)} className="flex-shrink-0">
+                                {enabled ? (
+                                  <ToggleRight className="w-6 h-6 text-neon-green" />
+                                ) : (
+                                  <ToggleLeft className="w-6 h-6 text-white/20" />
+                                )}
+                              </button>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-mono text-white/80">{skill.name}</span>
+                                  {isPending && (
+                                    <Badge color="green" size="sm">
+                                      {pendingToggles[skill.name] ? "enabling" : "disabling"}
+                                    </Badge>
+                                  )}
+                                </div>
+                                <p className="text-xs text-white/30 truncate">{skill.description}</p>
+                              </div>
+                              <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button variant="ghost" size="sm" icon={Eye} onClick={() => viewSkill(skill)}>
+                                  {isSkillExpanded ? "Hide" : "View"}
+                                </Button>
+                              </div>
+                            </div>
+                            {isSkillExpanded && (
+                              <div className="ml-12 mr-4 mb-2 p-3 bg-dark-800/50 border border-white/5 rounded-lg">
+                                <pre className="text-xs text-white/60 font-mono whitespace-pre-wrap max-h-60 overflow-auto">
+                                  {skillContent || "// Loading..."}
+                                </pre>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

@@ -30,10 +30,10 @@ export const BEHAVIOR_FILES: Record<
     category: "user",
   },
   agent: {
-    name: "AGENT.md",
+    name: "AGENTS.md",
     path: PATHS.agent,
     description: "Agent development rules and guidelines",
-    category: "system",
+    category: "identity",
   },
   config: {
     name: "config.yaml",

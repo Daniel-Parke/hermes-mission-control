@@ -187,7 +187,7 @@ export default function BehaviourPage() {
                       color={(PERSONALITY_COLORS[profile.personality] || "gray") as "cyan" | "green" | "pink" | "orange" | "purple" | "gray" | "red"}
                       size="sm"
                     >
-                      {profile.personality}
+                      {profile.personality.charAt(0).toUpperCase() + profile.personality.slice(1)}
                     </Badge>
                   </div>
                   <p className="text-sm text-white/50 mb-3">{profile.description}</p>
@@ -206,13 +206,13 @@ export default function BehaviourPage() {
                     <div className="mb-4 flex items-center gap-3">
                       <span className="text-sm text-white/50">Personality:</span>
                       <select
-                        value={profile.personality}
+                        value={profile.personality.charAt(0).toUpperCase() + profile.personality.slice(1)}
                         onChange={(e) => handlePersonalityChange(profile.id, e.target.value)}
                         disabled={savingPersonality === profile.id}
                         className="bg-dark-800 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-white focus:border-purple-500/50 focus:outline-none"
                       >
                         {PERSONALITIES.map((p) => (
-                          <option key={p} value={p}>{p}</option>
+                          <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>
                         ))}
                       </select>
                       {savingPersonality === profile.id && (
@@ -224,15 +224,15 @@ export default function BehaviourPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {["identity", "user", "system"].map((group) => {
                         const groupFiles = profile.files.filter((f) => {
-                          if (group === "identity") return ["soul", "hermes"].includes(f.key);
+                          if (group === "identity") return ["soul", "agents"].includes(f.key);
                           if (group === "user") return ["user", "memory"].includes(f.key);
-                          return ["agent", "config"].includes(f.key);
+                          return false;
                         });
                         if (groupFiles.length === 0) return null;
                         return (
                           <div key={group}>
                             <h4 className="text-xs font-semibold text-white/30 uppercase tracking-wider mb-2">
-                              {group === "identity" ? "Identity" : group === "user" ? "User" : "System"}
+                              {group === "identity" ? "Identity" : "User"}
                             </h4>
                             {groupFiles.map((file) => (
                               <div
@@ -267,43 +267,6 @@ export default function BehaviourPage() {
                           </div>
                         );
                       })}
-                    </div>
-
-                    {/* AGENTS.md section */}
-                    <div className="mt-4 pt-4 border-t border-white/10">
-                      <h4 className="text-xs font-semibold text-white/30 uppercase tracking-wider mb-2">
-                        Project Context (AGENTS.md)
-                      </h4>
-                      {profile.files.filter(f => f.key === "agents").map((file) => (
-                        <div
-                          key={file.key}
-                          className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-white/5 transition-colors group"
-                        >
-                          <div className="flex items-center gap-2">
-                            <FileText className="w-4 h-4 text-white/30" />
-                            <span className="text-sm text-white/70 font-mono">{file.name}</span>
-                            {file.exists && (
-                              <span className="text-xs text-white/20">
-                                {(file.size / 1024).toFixed(1)}KB
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            {file.exists ? (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                color="cyan"
-                                onClick={() => openFile(profile.id, file)}
-                              >
-                                Edit
-                              </Button>
-                            ) : (
-                              <span className="text-xs text-white/20">Not found</span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
                     </div>
 
                     {/* Close button */}

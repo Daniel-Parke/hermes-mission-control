@@ -18,12 +18,9 @@ function resolveFilePath(key: string, profile?: string): { path: string; name: s
   const profileDir = HERMES_HOME + "/profiles/" + profile;
   const pathMap: Record<string, string> = {
     soul: profileDir + "/SOUL.md",
-    hermes: profileDir + "/HERMES.md",
     agents: profileDir + "/AGENTS.md",
-    agent: profileDir + "/AGENT.md",
     user: profileDir + "/memories/USER.md",
     memory: profileDir + "/memories/MEMORY.md",
-    config: profileDir + "/config.yaml",
   };
 
   const resolvedPath = pathMap[key];

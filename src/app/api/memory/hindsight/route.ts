@@ -10,7 +10,7 @@ const PYTHON = process.env.PYTHON_PATH || "python3";
 
 function runBridge(command: string, args: Record<string, string | number | undefined> = {}): Record<string, unknown> {
   const argStr = Object.entries(args)
-    .filter(([, v]) => v !== undefined)
+    .filter(([, v]) => v !== undefined && v !== null && v !== "")
     .map(([k, v]) => `--${k} ${JSON.stringify(String(v))}`)
     .join(" ");
 
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
   const action = request.nextUrl.searchParams.get("action") || "list";
   const query = request.nextUrl.searchParams.get("query") || undefined;
   const budget = request.nextUrl.searchParams.get("budget") || undefined;
-  const bank = request.nextUrl.searchParams.get("bank") || "hermes";
+  const bank = request.nextUrl.searchParams.get("bank") || undefined;
   const limit = request.nextUrl.searchParams.get("limit") || undefined;
 
   try {

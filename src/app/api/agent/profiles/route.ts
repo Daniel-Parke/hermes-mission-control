@@ -54,12 +54,9 @@ function getProfileFiles(profileDir: string): AgentProfile["files"] {
   const files: AgentProfile["files"] = [];
   const fileDefs = [
     { key: "soul", name: "SOUL.md", relPath: "SOUL.md" },
-    { key: "hermes", name: "HERMES.md", relPath: "HERMES.md" },
     { key: "agents", name: "AGENTS.md", relPath: "AGENTS.md" },
-    { key: "agent", name: "AGENT.md", relPath: "AGENT.md" },
     { key: "user", name: "USER.md", relPath: "memories/USER.md" },
     { key: "memory", name: "MEMORY.md", relPath: "memories/MEMORY.md" },
-    { key: "config", name: "config.yaml", relPath: "config.yaml" },
   ];
 
   for (const def of fileDefs) {

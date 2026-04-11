@@ -38,7 +38,7 @@ export default function HindsightBrowser() {
   const [newContent, setNewContent] = useState("");
   const [newTags, setNewTags] = useState("");
   const [adding, setAdding] = useState(false);
-  const [health, setHealth] = useState<{ available: boolean; mode: string } | null>(null);
+  const [health, setHealth] = useState<{ available: boolean; mode: string; message?: string; error?: string } | null>(null);
   const toast = useToast();
 
   const loadMemories = useCallback(async () => {
@@ -60,7 +60,7 @@ export default function HindsightBrowser() {
     try {
       const res = await fetch("/api/memory/hindsight?action=health");
       const data = await res.json();
-      setHealth(data.data || { available: false, mode: "unknown" });
+      setHealth(data.data || { available: false, mode: "unknown", message: "No response" });
     } catch {
       setHealth({ available: false, mode: "error" });
     }
@@ -126,7 +126,7 @@ export default function HindsightBrowser() {
       {/* Health Status */}
       {health && !health.available && (
         <div className="mb-4">
-          <ErrorBanner message={`Hindsight is not available: ${health.mode}. Ensure the embedded server is initialized.`} />
+          <ErrorBanner message={`Hindsight ${health.mode}: ${health.message || health.error || "not responding"}`} />
         </div>
       )}
 

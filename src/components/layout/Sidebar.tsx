@@ -89,6 +89,7 @@ const mainSections: SidebarSection[] = [
       {
         icon: BookOpen, label: "Story Weaver", href: "/recroom/story-weaver", color: "purple",
         subLinks: [
+          { label: "Reading Desk", href: "/recroom/story-weaver/reading-desk" },
           { label: "Library", href: "/recroom/story-weaver/library" },
           { label: "Create", href: "/recroom/story-weaver/create" },
         ],

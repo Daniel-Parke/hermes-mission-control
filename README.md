@@ -226,25 +226,25 @@ All API routes import paths from `src/lib/hermes.ts`. The app reads from `~/.her
 
 ## Screenshots
 
-![Dashboard](screenshots/Hermes_Dashboard.png)
+![Dashboard](screenshots/dashboard.png)
 
 ![Mission Dispatch](screenshots/Mission_Dispatch.png)
 
-![Mission Template](screenshots/Mission_Template.png)
-
 ![Mission Page](screenshots/Mission_Page.png)
 
-![Cron Job Config](screenshots/Cron_Job.png)
+![Cron Job](screenshots/Cron_Job.png)
+
+![Sessions](screenshots/sessions.png)
+
+![Memory](screenshots/memory.png)
+
+![Story Weaver](screenshots/story-weaver.png)
 
 ![Agent Behaviour](screenshots/Agent_Behaviour.png)
 
-![Agent Personalities](screenshots/Agent_Personalities.png)
+![Skills](screenshots/skills.png)
 
-![Agent Skills](screenshots/Agent_Skills.png)
-
-![Agent Tools](screenshots/Agent_Tools.png)
-
-![Agent Configuration](screenshots/Agent_Configuration.png)
+![Tools](screenshots/tools.png)
 
 ---
 

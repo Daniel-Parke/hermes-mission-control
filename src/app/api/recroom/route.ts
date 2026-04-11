@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, unlinkSync } from "fs";
-import { HERMES_HOME, getDefaultModelConfig } from "@/lib/hermes";
+import { HERMES_HOME } from "@/lib/hermes";
 import { logApiError } from "@/lib/api-logger";
 import { getSystemPrompt } from "@/lib/recroom/prompt-templates";
 import type { ApiResponse } from "@/types/hermes";
@@ -15,8 +15,17 @@ import type {
 // Rec Room API — Prompt Enhancement + Content Generation
 // ═══════════════════════════════════════════════════════════════
 // POST /api/recroom — Unified endpoint for all Rec Room actions
+//
+// LLM calls route through the Hermes Gateway API Server (port 8642).
+// This server is built into the gateway, has full credential access,
+// and exposes an OpenAI-compatible /v1/chat/completions endpoint.
+//
+// Requirements:
+//   - Gateway must be running
+//   - API_SERVER_ENABLED=true in ~/.hermes/.env
 
 const SAVE_DIR = HERMES_HOME + "/mission-control/data/recroom";
+const GATEWAY_API = "http://127.0.0.1:8642/v1/chat/completions";
 
 function ensureSaveDir() {
   if (!existsSync(SAVE_DIR)) mkdirSync(SAVE_DIR, { recursive: true });
@@ -27,43 +36,50 @@ function getSavePath(activity: string, id: string): string {
 }
 
 /**
- * Call the configured LLM with a system prompt and user message.
- * Uses the same provider/model as the main agent.
+ * Call the LLM via the Hermes Gateway API Server.
+ * The gateway handles credential resolution and provider routing.
  */
 async function callLLM(systemPrompt: string, userMessage: string): Promise<string> {
-  const config = getDefaultModelConfig();
-  const baseUrl = config.base_url || "https://inference-api.nousresearch.com/v1";
-  const apiKey = config.api_key;
-  const model = config.model;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 120_000); // 2 min timeout
 
-  if (!apiKey) {
-    throw new Error("No API key configured. Check config.yaml model settings.");
+  try {
+    const response = await fetch(GATEWAY_API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "hermes",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userMessage },
+        ],
+        temperature: 0.8,
+        max_tokens: 4096,
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error("Gateway API error " + response.status + ": " + text.slice(0, 200));
+    }
+
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content || "";
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("LLM request timed out (120s). The model may be overloaded.");
+    }
+    if (error instanceof Error && error.message.includes("fetch failed")) {
+      throw new Error(
+        "Cannot connect to Gateway API at " + GATEWAY_API +
+        ". Ensure the gateway is running with API_SERVER_ENABLED=true in ~/.hermes/.env"
+      );
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
   }
-
-  const response = await fetch(baseUrl + "/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: "Bearer " + apiKey,
-    },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userMessage },
-      ],
-      temperature: 0.8,
-      max_tokens: 4096,
-    }),
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error("LLM API error: " + response.status + " " + text);
-  }
-
-  const data = await response.json();
-  return data.choices?.[0]?.message?.content || "";
 }
 
 // ── POST Handler ─────────────────────────────────────────────
@@ -120,13 +136,23 @@ async function handleEnhance(body: RecRoomRequest): Promise<NextResponse<ApiResp
 
   try {
     const raw = await callLLM(systemPrompt, prompt);
-    // Try to parse as JSON (may have markdown fences)
-    const cleaned = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+    // Clean markdown fences and parse JSON
+    const cleaned = raw
+      .replace(/^```json\s*/i, "")
+      .replace(/^```\s*/i, "")
+      .replace(/\s*```$/i, "")
+      .trim();
     const result: EnhanceResponse = JSON.parse(cleaned);
+
+    // Validate structure
+    if (!result.interpretation || !Array.isArray(result.options)) {
+      throw new Error("Invalid enhancement response structure");
+    }
+
     return NextResponse.json({ data: result });
   } catch (error) {
     logApiError("POST /api/recroom", "enhancing prompt", error);
-    // Fallback: return the prompt as-is with a basic interpretation
+    // Fallback: return the prompt as-is
     return NextResponse.json({
       data: {
         interpretation: prompt,

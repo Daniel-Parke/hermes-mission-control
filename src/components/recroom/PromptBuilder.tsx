@@ -85,7 +85,7 @@ export default function PromptBuilder({
         />
       </div>
 
-      {/* Action buttons */}
+      {/* Action buttons — Enhance and Create are separate */}
       <div className="flex gap-2">
         <button
           onClick={handleEnhance}
@@ -97,16 +97,19 @@ export default function PromptBuilder({
           ) : (
             <Wand2 className="w-4 h-4" />
           )}
-          {enhancing ? "Enhancing..." : "Enhance & Create"}
+          {enhancing ? "Enhancing..." : "Enhance"}
         </button>
         <button
           onClick={handleDirectGenerate}
           disabled={!prompt.trim() || busy}
-          className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-white/10 text-sm font-mono text-white/50 hover:text-white/70 hover:bg-white/5 transition-colors disabled:opacity-30"
-          title="Skip enhancement, generate directly"
+          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-mono transition-colors disabled:opacity-30 ${btnClass}`}
         >
-          <Sparkles className="w-4 h-4" />
-          Create
+          {generating ? (
+            <Sparkles className="w-4 h-4 animate-pulse" />
+          ) : (
+            <Sparkles className="w-4 h-4" />
+          )}
+          {generating ? "Creating..." : "Create"}
         </button>
         {prompt && (
           <button

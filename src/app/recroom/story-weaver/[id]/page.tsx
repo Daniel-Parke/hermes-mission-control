@@ -1,12 +1,13 @@
-// Story Weaver — Reader (Book UI)
+// Story Weaver — Reader (Book UI with settings, mobile layout, continuous scroll)
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ChevronLeft, ChevronRight, BookOpen, Sparkles, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, BookOpen, Sparkles, Loader2, Menu, X } from "lucide-react";
 import ChapterList from "@/components/story-weaver/ChapterList";
 import SteerInput from "@/components/story-weaver/SteerInput";
+import ReaderSettings, { loadSettings, DEFAULT_SETTINGS, FONTS, THEMES, type ReadingSettings } from "@/components/story-weaver/ReaderSettings";
 
-interface Chapter { number: number; title: string; status: string; wordCount: number; generatedAt?: string | null; }
+interface Chapter { number: number; title: string; status: string; wordCount: number; readStatus?: "writing" | "unread" | "read"; generatedAt?: string | null; }
 
 export default function StoryReaderPage() {
   const router = useRouter();
@@ -18,6 +19,11 @@ export default function StoryReaderPage() {
   const [currentChapter, setCurrentChapter] = useState(1);
   const [generating, setGenerating] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [settings, setSettings] = useState<ReadingSettings>(DEFAULT_SETTINGS);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Load settings from localStorage
+  useEffect(() => { setSettings(loadSettings()); }, []);
 
   const loadStory = useCallback(async () => {
     try {
@@ -32,11 +38,11 @@ export default function StoryReaderPage() {
 
   useEffect(() => { loadStory(); }, [loadStory]);
 
-  // Auto-generate next chapter if first is complete and next is pending
+  // Auto-generate next pending chapter
   useEffect(() => {
     if (!story || generating) return;
     const pending = story.chapters?.find((c: Chapter) => c.status === "pending");
-    if (pending) {
+    if (pending && pending.status === "pending") {
       generateNext();
     }
   }, [story?.chapters]);
@@ -54,12 +60,66 @@ export default function StoryReaderPage() {
     } catch {} finally { setGenerating(false); }
   }, [story, storyId, generating]);
 
+  // Mark chapter as read and move to next
+  const handleNextChapter = useCallback(async () => {
+    if (!story) return;
+    const chapters: Chapter[] = story.chapters || [];
+    const currentMeta = chapters[currentChapter - 1];
+
+    // Mark current as read
+    if (currentMeta?.readStatus !== "read") {
+      try {
+        const updatedChapters = chapters.map((c: Chapter) =>
+          c.number === currentChapter ? { ...c, readStatus: "read" } : c
+        );
+        const updatedStory = { ...story, chapters: updatedChapters };
+        setStory(updatedStory);
+
+        // Persist read status
+        await fetch("/api/stories", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "update", storyId,
+            chapters: updatedChapters,
+          }),
+        });
+      } catch {}
+    }
+
+    // Move to next chapter
+    const nextComplete = chapters.find((c: Chapter) => c.number > currentChapter && c.status === "complete");
+    if (nextComplete) {
+      setCurrentChapter(nextComplete.number);
+      // Mark next as read-status unread if it was pending
+      setStory((prev: any) => ({
+        ...prev,
+        chapters: prev.chapters.map((c: Chapter) =>
+          c.number === nextComplete.number && !c.readStatus ? { ...c, readStatus: "unread" } : c
+        ),
+      }));
+    }
+  }, [story, currentChapter, storyId]);
+
   const handleSteer = (direction: string) => {
     const nextPending = story?.chapters?.find((c: Chapter) => c.status === "pending");
-    if (nextPending) {
-      generateNext(direction);
-    }
+    if (nextPending) generateNext(direction);
   };
+
+  const handleChapterSelect = (num: number) => {
+    setCurrentChapter(num);
+    // Mark as read when selecting from sidebar
+    setStory((prev: any) => ({
+      ...prev,
+      chapters: prev.chapters.map((c: Chapter) =>
+        c.number === num && c.status === "complete" ? { ...c, readStatus: "read" } : c
+      ),
+    }));
+    // On mobile, close sidebar after selection
+    if (window.innerWidth < 768) setSidebarOpen(false);
+  };
+
+  const theme = THEMES[settings.pageTheme] || THEMES.dark;
+  const fontObj = FONTS.find(f => f.name === settings.fontFamily) || FONTS[0];
 
   if (loading) {
     return (
@@ -83,85 +143,144 @@ export default function StoryReaderPage() {
   const chapters: Chapter[] = story.chapters || [];
   const chapterContent = story.chapterContents?.[currentChapter] || "";
   const currentMeta = chapters[currentChapter - 1];
+  const prevComplete = chapters.filter((c: Chapter) => c.number < currentChapter && c.status === "complete");
+  const nextComplete = chapters.find((c: Chapter) => c.number > currentChapter && c.status === "complete");
 
   return (
     <div className="min-h-screen bg-dark-950 grid-bg relative scanlines flex flex-col">
-      {/* Header */}
-      <div className="border-b border-white/10 bg-dark-900/50 px-6 py-3 backdrop-blur-xl flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-3">
-          <button onClick={() => router.push("/recroom/story-weaver")} className="p-1.5 rounded-lg text-white/30 hover:text-white/60 hover:bg-white/5">
-            <ChevronLeft className="w-4 h-4" />
+      {/* ═══ Header ═══ */}
+      <div className="border-b border-white/10 bg-dark-900/50 backdrop-blur-xl flex-shrink-0">
+        <div className="flex items-center justify-between px-4 md:px-6 py-3">
+          {/* Left: Back */}
+          <button onClick={() => router.push("/recroom/story-weaver")}
+            className="p-2.5 rounded-lg text-white/40 hover:text-white/70 hover:bg-white/5 transition-colors flex-shrink-0">
+            <ChevronLeft className="w-5 h-5" />
           </button>
-          <BookOpen className="w-4 h-4 text-neon-purple" />
-          <h1 className="text-sm font-semibold text-white truncate">{story.title}</h1>
+
+          {/* Centre: Title (truncated on mobile) */}
+          <h1 className="text-sm font-semibold text-white truncate mx-2 flex-1 text-center min-w-0">
+            {story.title}
+          </h1>
+
+          {/* Right: Chapters toggle + Settings */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="flex items-center gap-1.5 px-3 py-2.5 rounded-lg border border-white/10 text-xs font-bold text-white/70 hover:text-white hover:bg-white/5 transition-colors min-h-[44px]"
+              title={sidebarOpen ? "Hide Chapters" : "Show Chapters"}>
+              <BookOpen className="w-4 h-4" />
+              <span className="hidden md:inline">Chapters</span>
+            </button>
+            <ReaderSettings settings={settings} onChange={setSettings} />
+          </div>
         </div>
-        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-[10px] font-mono text-white/30 hover:text-white/50 px-2 py-1 rounded border border-white/5">
-          {sidebarOpen ? "Hide Chapters" : "Chapters"}
-        </button>
+
+        {/* Chapter indicator dots */}
+        <div className="flex items-center justify-center gap-1.5 pb-2 px-4">
+          {chapters.map((ch, i) => (
+            <button key={i} onClick={() => ch.status === "complete" && handleChapterSelect(i + 1)}
+              className={`w-2 h-2 rounded-full transition-all ${
+                i + 1 === currentChapter ? "scale-150" : "opacity-40 hover:opacity-70"
+              }`}
+              style={{ background: ch.status === "complete" ? (i + 1 === currentChapter ? theme.accent : "#4a3f35") : "#2a2520" }}
+              title={`Chapter ${i + 1}: ${ch.title}`} />
+          ))}
+        </div>
       </div>
 
-      {/* Body */}
+      {/* ═══ Body ═══ */}
       <div className="flex-1 flex overflow-hidden">
         {/* Chapter Sidebar */}
         {sidebarOpen && (
-          <div className="w-56 flex-shrink-0 border-r border-white/5 bg-dark-900/30 p-4 overflow-y-auto">
-            <ChapterList chapters={chapters} currentChapter={currentChapter} onSelect={setCurrentChapter} />
+          <div className="w-56 flex-shrink-0 border-r border-white/5 overflow-y-auto hidden md:block" style={{ background: theme.panel }}>
+            <div className="p-4">
+              <ChapterList chapters={chapters} currentChapter={currentChapter} onSelect={handleChapterSelect} />
+            </div>
           </div>
         )}
 
-        {/* Book Content */}
-        <div className="flex-1 flex flex-col">
-          <div className="flex-1 overflow-y-auto" style={{ background: "#0f0d0b" }}>
+        {/* Book Content — continuous scroll */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-y-auto" style={{ background: theme.bg, filter: `brightness(${settings.brightness})` }}>
             {chapterContent ? (
-              <div className="max-w-3xl mx-auto px-8 md:px-16 py-10">
-                <h2 className="text-xl font-serif mb-8 pb-4 border-b" style={{ color: "#e8dcc8", borderColor: "#2a2520" }}>
+              <div className="max-w-3xl mx-auto px-6 md:px-16 py-8 md:py-10">
+                <h2 className="mb-8 pb-4 border-b" style={{
+                  color: theme.text, borderColor: settings.pageTheme === "light" ? "#d4ccc0" : "#2a2520",
+                  fontFamily: fontObj.family, fontSize: `${settings.fontSize + 6}px`, fontWeight: 600,
+                }}>
                   Chapter {currentChapter}: {currentMeta?.title}
                 </h2>
-                <div className="font-serif leading-[1.9] text-justify whitespace-pre-wrap" style={{ color: "#e8dcc8", fontSize: "16px" }}>
+                <div className="whitespace-pre-wrap text-justify" style={{
+                  color: theme.text, fontFamily: fontObj.family,
+                  fontSize: `${settings.fontSize}px`, lineHeight: settings.lineHeight,
+                }}>
                   {chapterContent}
                 </div>
               </div>
             ) : currentMeta?.status === "writing" || currentMeta?.status === "pending" ? (
-              <div className="flex flex-col items-center justify-center h-full">
-                <Sparkles className="w-8 h-8 text-neon-purple animate-pulse mb-4" />
-                <p className="text-sm font-serif" style={{ color: "#8a7e6d" }}>
+              <div className="flex flex-col items-center justify-center h-full min-h-[400px]">
+                <Sparkles className="w-8 h-8 animate-pulse mb-4" style={{ color: theme.accent }} />
+                <p className="text-sm" style={{ color: theme.text, opacity: 0.5, fontFamily: fontObj.family }}>
                   {currentMeta.status === "writing" ? "The muse is visiting..." : "Waiting for its moment..."}
                 </p>
-                <p className="text-xs mt-2" style={{ color: "#5a4f42" }}>Chapter {currentChapter} is being written</p>
+                <p className="text-xs mt-2" style={{ color: theme.text, opacity: 0.3 }}>
+                  Chapter {currentChapter} is being written
+                </p>
               </div>
             ) : (
-              <div className="flex items-center justify-center h-full">
-                <p className="text-sm" style={{ color: "#5a4f42" }}>Select a chapter to read</p>
+              <div className="flex items-center justify-center h-full min-h-[400px]">
+                <p className="text-sm" style={{ color: theme.text, opacity: 0.3 }}>Select a chapter to read</p>
               </div>
             )}
           </div>
 
-          {/* Chapter Navigation */}
-          <div className="flex items-center justify-between px-6 py-3 border-t flex-shrink-0" style={{ borderColor: "#2a2520", background: "#141210" }}>
-            <button onClick={() => setCurrentChapter(Math.max(1, currentChapter - 1))} disabled={currentChapter <= 1}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-mono disabled:opacity-20" style={{ color: "#8a7e6d" }}>
-              <ChevronLeft className="w-4 h-4" /> Prev
+          {/* Navigation */}
+          <div className="flex items-center justify-between px-4 md:px-6 py-3 border-t flex-shrink-0" style={{ borderColor: settings.pageTheme === "light" ? "#d4ccc0" : "#2a2520", background: theme.panel }}>
+            <button onClick={() => setCurrentChapter(Math.max(1, currentChapter - 1))}
+              disabled={currentChapter <= 1}
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-xs font-mono disabled:opacity-20 min-h-[44px]"
+              style={{ color: theme.text, opacity: 0.6 }}>
+              <ChevronLeft className="w-4 h-4" /> <span className="hidden sm:inline">Prev</span>
             </button>
-            <div className="flex gap-1.5">
+
+            {/* Chapter dots */}
+            <div className="flex gap-1.5 overflow-x-auto max-w-[200px] md:max-w-none">
               {chapters.map((ch, i) => (
-                <button key={i} onClick={() => ch.status === "complete" && setCurrentChapter(i + 1)}
-                  className={`w-2.5 h-2.5 rounded-full transition-all ${i + 1 === currentChapter ? "scale-125" : "opacity-40 hover:opacity-70"}`}
-                  style={{ background: ch.status === "complete" ? (i + 1 === currentChapter ? "#a855f7" : "#4a3f35") : "#2a2520" }} />
+                <button key={i} onClick={() => ch.status === "complete" && handleChapterSelect(i + 1)}
+                  className={`w-2.5 h-2.5 rounded-full transition-all flex-shrink-0 ${i + 1 === currentChapter ? "scale-125" : "opacity-40 hover:opacity-70"}`}
+                  style={{ background: ch.status === "complete" ? (i + 1 === currentChapter ? theme.accent : "#4a3f35") : "#2a2520" }} />
               ))}
             </div>
-            <button onClick={() => setCurrentChapter(Math.min(chapters.length, currentChapter + 1))}
-              disabled={currentChapter >= chapters.length || chapters[currentChapter]?.status !== "complete"}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-mono disabled:opacity-20" style={{ color: "#e8dcc8" }}>
-              Next <ChevronRight className="w-4 h-4" />
+
+            <button onClick={handleNextChapter}
+              disabled={!nextComplete}
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-xs font-mono disabled:opacity-20 min-h-[44px]"
+              style={{ color: theme.text }}>
+              <span className="hidden sm:inline">Next</span> <ChevronRight className="w-4 h-4" />
             </button>
           </div>
 
           {/* Steer Input */}
-          <div className="px-6 pb-4 flex-shrink-0" style={{ background: "#141210" }}>
+          <div className="px-4 md:px-6 pb-4 flex-shrink-0" style={{ background: theme.panel }}>
             <SteerInput onSteer={handleSteer} loading={generating} />
           </div>
         </div>
       </div>
+
+      {/* Mobile sidebar overlay */}
+      {sidebarOpen && (
+        <div className="md:hidden fixed inset-0 z-40 bg-dark-950/80 backdrop-blur-sm" onClick={() => setSidebarOpen(false)}>
+          <div className="absolute left-0 top-0 bottom-0 w-72 border-r border-white/10 overflow-y-auto" style={{ background: theme.panel }}
+            onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b border-white/5">
+              <span className="text-xs font-mono text-white/40 uppercase tracking-widest">Chapters</span>
+              <button onClick={() => setSidebarOpen(false)} className="p-1.5 text-white/30 hover:text-white/50"><X className="w-4 h-4" /></button>
+            </div>
+            <div className="p-4">
+              <ChapterList chapters={chapters} currentChapter={currentChapter} onSelect={handleChapterSelect} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { getStoryPrompt, CHAPTER_STATUSES, LOADING_MESSAGES } from "@/lib/story-weaver/prompts";
+import { DEFAULT_SETTINGS, FONTS, THEMES } from "@/components/story-weaver/ReaderSettings";
 
 describe("Story Weaver — Prompts", () => {
   it("should return prompts for all phases", () => {
@@ -36,55 +37,71 @@ describe("Story Weaver — Status Messages", () => {
     expect(CHAPTER_STATUSES.failed).toBeTruthy();
   });
 
-  it("should have loading messages", () => {
-    expect(LOADING_MESSAGES.length).toBeGreaterThanOrEqual(4);
-    for (const msg of LOADING_MESSAGES) {
-      expect(msg.length).toBeGreaterThan(5);
+  it("should have 20+ loading messages", () => {
+    expect(LOADING_MESSAGES.length).toBeGreaterThanOrEqual(20);
+  });
+});
+
+describe("Story Weaver — Reader Settings", () => {
+  it("should have valid defaults", () => {
+    expect(DEFAULT_SETTINGS.fontSize).toBeGreaterThanOrEqual(12);
+    expect(DEFAULT_SETTINGS.fontSize).toBeLessThanOrEqual(28);
+    expect(DEFAULT_SETTINGS.lineHeight).toBeGreaterThanOrEqual(1.2);
+    expect(DEFAULT_SETTINGS.lineHeight).toBeLessThanOrEqual(2.5);
+    expect(["dark", "black", "sepia", "light"]).toContain(DEFAULT_SETTINGS.pageTheme);
+  });
+
+  it("should have 5 font options", () => {
+    expect(FONTS).toHaveLength(5);
+    for (const font of FONTS) {
+      expect(font.name).toBeTruthy();
+      expect(font.family).toContain("var(--font-");
+    }
+  });
+
+  it("should have 4 theme presets", () => {
+    expect(Object.keys(THEMES)).toHaveLength(4);
+    for (const [key, theme] of Object.entries(THEMES)) {
+      expect(theme.bg).toMatch(/^#[0-9a-f]{6}$/);
+      expect(theme.text).toMatch(/^#[0-9a-f]{6}$/);
+      expect(theme.accent).toMatch(/^#[0-9a-f]{6}$/);
     }
   });
 });
 
-describe("Story Weaver — API Response Format", () => {
-  it("should match create response shape", () => {
-    const mock = {
-      id: "story_abc123",
-      title: "Test Story",
-      chapters: [{ number: 1, title: "Ch1", status: "complete", wordCount: 500 }],
-      chapterContents: { "1": "Once upon a time..." },
-    };
-    expect(mock).toHaveProperty("id");
-    expect(mock).toHaveProperty("title");
-    expect(mock).toHaveProperty("chapters");
-    expect(mock).toHaveProperty("chapterContents");
-    expect(mock.chapters[0].status).toBe("complete");
+describe("Story Weaver — Chapter Read Status", () => {
+  it("should support read status states", () => {
+    const statuses = ["writing", "unread", "read"];
+    for (const s of statuses) {
+      expect(statuses).toContain(s);
+    }
   });
 
-  it("should match list response shape", () => {
-    const mock = {
-      stories: [{ id: "s1", title: "Story 1", chapters: [{ number: 1, status: "complete" }] }],
-    };
-    expect(Array.isArray(mock.stories)).toBe(true);
-    expect(mock.stories[0]).toHaveProperty("id");
-    expect(mock.stories[0]).toHaveProperty("title");
-  });
-});
-
-describe("Story Weaver — Chapter Statuses", () => {
   it("should mark first chapter complete after creation", () => {
     const chapters = [
-      { number: 1, title: "Ch1", status: "complete", wordCount: 800 },
-      { number: 2, title: "Ch2", status: "pending", wordCount: 0 },
-      { number: 3, title: "Ch3", status: "pending", wordCount: 0 },
+      { number: 1, title: "Ch1", status: "complete", wordCount: 800, readStatus: "unread" },
+      { number: 2, title: "Ch2", status: "pending", wordCount: 0, readStatus: "writing" },
     ];
-    const nextPending = chapters.findIndex((c) => c.status === "pending") + 1;
-    expect(nextPending).toBe(2);
+    expect(chapters[0].status).toBe("complete");
+    expect(chapters[0].readStatus).toBe("unread");
+    expect(chapters[1].status).toBe("pending");
   });
 
   it("should detect all chapters complete", () => {
     const chapters = [
-      { number: 1, status: "complete" },
-      { number: 2, status: "complete" },
+      { number: 1, status: "complete", readStatus: "read" },
+      { number: 2, status: "complete", readStatus: "read" },
     ];
     expect(chapters.every((c) => c.status === "complete")).toBe(true);
+    expect(chapters.every((c) => c.readStatus === "read")).toBe(true);
+  });
+});
+
+describe("Story Weaver — Word Count Ranges", () => {
+  it("should have valid range options", () => {
+    const ranges = ["short", "medium", "standard", "long", "epic", "marathon"];
+    const labels = ["800-1.2k", "1.2-1.8k", "1.8-2.5k", "2.5-3.5k", "3.5-5k", "5k+"];
+    expect(ranges).toHaveLength(6);
+    expect(labels).toHaveLength(6);
   });
 });

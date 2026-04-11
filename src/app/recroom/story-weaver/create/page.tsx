@@ -56,6 +56,7 @@ export default function CreateStoryPage() {
   const [setting, setSetting] = useState(STORY_TEMPLATES[0].setting);
   const [pov, setPov] = useState<string>(STORY_TEMPLATES[0].pov);
   const [length, setLength] = useState<string>(STORY_TEMPLATES[0].length);
+  const [wordCountRange, setWordCountRange] = useState("standard");
   const [characters, setCharacters] = useState<StoryCharacter[]>([...STORY_TEMPLATES[0].characters]);
   const [selectedTemplate, setSelectedTemplate] = useState("cosmic-voyager");
   const [genreOpts, setGenreOpts] = useState([...DEFAULT_GENRES]);
@@ -88,7 +89,7 @@ export default function CreateStoryPage() {
         body: JSON.stringify({
           action: "create",
           title: title || "Untitled Story",
-          config: { premise, genre: genres.join(", "), era, setting, mood: moods, pov, length, characters },
+          config: { premise, genre: genres.join(", "), era, setting, mood: moods, pov, length, characters, wordCountRange },
         }),
       });
       const d = await res.json();
@@ -109,7 +110,7 @@ export default function CreateStoryPage() {
   return (
     <div className="min-h-screen bg-dark-950 grid-bg relative scanlines">
       {/* Generate overlay */}
-      <GenerateOverlay title={title || "Your Story"} phase="plan" chapters={genChapters} visible={generating} />
+      <GenerateOverlay title={title || "Your Story"} visible={generating} />
 
       {/* Header */}
       <div className="border-b border-white/10 bg-dark-900/50 px-6 py-4 backdrop-blur-xl">
@@ -200,6 +201,28 @@ export default function CreateStoryPage() {
               <option value="medium">Medium (5-7 chapters)</option>
               <option value="long">Long (8-12 chapters)</option>
             </select>
+          </div>
+        </div>
+
+        {/* Chapter Word Count */}
+        <div className="rounded-xl border border-white/8 bg-dark-900/50 p-4">
+          <label className="text-[10px] font-mono text-white/30 uppercase tracking-wider block mb-2">Chapter Length (words per chapter)</label>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { id: "short", label: "800-1.2k" },
+              { id: "medium", label: "1.2-1.8k" },
+              { id: "standard", label: "1.8-2.5k" },
+              { id: "long", label: "2.5-3.5k" },
+              { id: "epic", label: "3.5-5k" },
+              { id: "marathon", label: "5k+" },
+            ].map((opt) => (
+              <button key={opt.id} onClick={() => setWordCountRange(opt.id)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono border transition-all ${
+                  wordCountRange === opt.id ? "border-purple-500/40 bg-purple-500/15 text-neon-purple" : "border-white/8 text-white/30 hover:text-white/50"
+                }`}>
+                {opt.label}
+              </button>
+            ))}
           </div>
         </div>
 

@@ -90,7 +90,13 @@ async function handleCreate(body: any): Promise<NextResponse> {
   if (!config?.premise) return NextResponse.json({ error: "Missing premise" }, { status: 400 });
 
   const system = getStoryPrompt("plan");
-  const userMessage = `Story configuration:
+  const wordRanges: Record<string, string> = {
+  short: "800-1200", medium: "1200-1800", standard: "1800-2500",
+  long: "2500-3500", epic: "3500-5000", marathon: "5000+",
+};
+const wcRange = wordRanges[config.wordCountRange] || "1800-2500";
+
+const userMessage = `Story configuration:
 Title: ${title || "Untitled"}
 Premise: ${config.premise}
 Genre: ${config.genre || "General"}
@@ -99,6 +105,7 @@ Setting: ${config.setting || ""}
 Mood: ${(config.mood || []).join(", ")}
 POV: ${config.pov || "first"}
 Length: ${config.length || "medium"}
+Chapter Length: ${wcRange} words per chapter (prioritise quality, aim within range)
 Characters: ${(config.characters || []).map((c: any) => `${c.name} (${c.role}): ${c.description}`).join("; ")}`;
 
   try {
@@ -199,6 +206,12 @@ async function handleGenerateChapter(body: any): Promise<NextResponse> {
 
   try {
     const system = getStoryPrompt("chapter");
+    const wordRanges2: Record<string, string> = {
+      short: "800-1200", medium: "1200-1800", standard: "1800-2500",
+      long: "2500-3500", epic: "3500-5000", marathon: "5000+",
+    };
+    const wcRange2 = wordRanges2[story.config?.wordCountRange] || "1800-2500";
+
     const prevChapters = Object.entries(story.chapterContents as Record<string, string>)
       .sort(([a], [b]) => Number(a) - Number(b))
       .map(([num, text]) => `Chapter ${num}:\n${text}`)
@@ -211,6 +224,8 @@ PREVIOUS CHAPTERS:
 ${prevChapters}
 
 USER DIRECTION: ${body.userDirection || "None — follow the plan"}
+
+Chapter Length: ${wcRange2} words (prioritise quality, aim within range)
 
 Write Chapter ${nextNum} now.`;
 

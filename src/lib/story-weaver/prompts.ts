@@ -102,14 +102,24 @@ export function getStoryPrompt(phase: "plan" | "chapter" | "summary"): string {
 // ── Fun Status Messages ──────────────────────────────────────
 
 export const LOADING_MESSAGES = [
-  "The muse is visiting...",
-  "Weaving plot threads...",
-  "Developing characters...",
-  "Building your world...",
-  "The story writes itself... almost...",
-  "Consulting the narrative oracle...",
-  "Ink meets parchment...",
-  "Spinning tales of wonder...",
+  // Writing
+  "The muse is visiting...", "Ink meets parchment...", "Words flowing like rivers...",
+  "The pen moves swiftly...", "Sentences taking shape...",
+  // Plotting
+  "Weaving plot threads...", "Planting narrative seeds...", "Connecting story arcs...",
+  "Building dramatic tension...", "Laying the groundwork...",
+  // Characters
+  "Developing characters...", "Giving voices to heroes...", "Characters finding their way...",
+  "Dialogue echoing through chapters...", "Heroes stepping onto the stage...",
+  // World
+  "Building your world...", "Mapping the terrain...", "Painting the scenery...",
+  "Landscapes forming in the mind...", "Architecture of imagination...",
+  // Drama
+  "Raising the stakes...", "Plot twist incoming...", "Building suspense...",
+  "Suspense thickening...", "The unexpected approaches...",
+  // Poetic
+  "Spinning tales of wonder...", "The story writes itself... almost...",
+  "Dawn breaks on page one...", "Magic seeping into words...", "Tales older than time...",
 ];
 
 export const CHAPTER_STATUSES: Record<string, string> = {

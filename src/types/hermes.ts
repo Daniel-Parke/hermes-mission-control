@@ -97,6 +97,31 @@ export interface MemoryData {
   banks?: MemoryBank[];
 }
 
+// ── Agent Profiles ────────────────────────────────────────────
+export interface ProfileFile {
+  key: string;
+  name: string;
+  path: string;
+  exists: boolean;
+  size: number;
+  lastModified: string | null;
+}
+
+export interface AgentProfile {
+  id: string;
+  name: string;
+  description: string;
+  personality: string;
+  isDefault: boolean;
+  skillsCount: number;
+  toolsCount: number;
+  files: ProfileFile[];
+}
+
+export interface ProfilesData {
+  profiles: AgentProfile[];
+}
+
 // ── Config Sections ────────────────────────────────────────────
 export interface AgentConfig {
   max_turns: number;

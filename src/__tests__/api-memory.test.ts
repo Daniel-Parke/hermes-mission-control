@@ -2,12 +2,12 @@ import { existsSync } from "fs";
 import { PATHS } from "@/lib/hermes";
 
 // ═══════════════════════════════════════════════════════════════
-// Memory API — Unit Tests
+// Memory API - Unit Tests
 // ═══════════════════════════════════════════════════════════════
 // Tests the memory API response shapes and graceful degradation
 // when holographic memory is not installed.
 
-describe("Memory API — Graceful Degradation", () => {
+describe("Memory API - Graceful Degradation", () => {
   describe("Missing Memory Database", () => {
     it("should detect whether memory DB exists", () => {
       const hasDb = existsSync(PATHS.memoryDb);
@@ -20,7 +20,7 @@ describe("Memory API — Graceful Degradation", () => {
     });
   });
 
-  describe("Response Shape — GET /api/memory", () => {
+  describe("Response Shape - GET /api/memory", () => {
     it("should define expected fields for available memory", () => {
       const mockResponse = {
         facts: [
@@ -88,7 +88,7 @@ describe("Memory API — Graceful Degradation", () => {
     });
   });
 
-  describe("Response Shape — DELETE /api/memory", () => {
+  describe("Response Shape - DELETE /api/memory", () => {
     it("should return success shape on valid delete", () => {
       const mockResponse = { success: true, id: 42 };
       expect(mockResponse.success).toBe(true);
@@ -108,7 +108,7 @@ describe("Memory API — Graceful Degradation", () => {
     });
   });
 
-  describe("Response Shape — POST /api/memory", () => {
+  describe("Response Shape - POST /api/memory", () => {
     it("should return success shape with new fact", () => {
       const mockResponse = {
         success: true,

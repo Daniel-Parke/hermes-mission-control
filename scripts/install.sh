@@ -118,6 +118,50 @@ if [ ! -f "scripts/setup.sh" ]; then
 fi
 bash scripts/setup.sh
 
+# ── Create Mission Control Agent Profiles ─────────────────────
+echo ""
+info "Setting up Mission Control agent profiles..."
+
+HERMES_HOME="${HERMES_HOME:-$HOME/.hermes}"
+MC_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+PROFILE_TEMPLATES="$MC_DIR/scripts/profiles"
+
+PROFILES=("mc-qa-engineer" "mc-devops-engineer" "mc-swe-engineer" "mc-data-engineer" "mc-data-scientist" "mc-ops-director" "mc-creative-lead" "mc-support-agent")
+
+for profile in "${PROFILES[@]}"; do
+    PROFILE_DIR="$HERMES_HOME/profiles/$profile"
+    if [ -d "$PROFILE_DIR" ]; then
+        ok "Profile '$profile' already exists"
+    else
+        info "Creating profile: $profile"
+        # Create profile with config/env clone (shares API keys)
+        if command -v hermes &>/dev/null; then
+            hermes profile create "$profile" --clone --no-alias 2>/dev/null || true
+        else
+            # Fallback: manual directory creation
+            mkdir -p "$PROFILE_DIR"/{memories,sessions,skills,skins,logs,plans,workspace,cron}
+            # Copy config and env from default profile
+            [ -f "$HERMES_HOME/config.yaml" ] && cp "$HERMES_HOME/config.yaml" "$PROFILE_DIR/config.yaml"
+            [ -f "$HERMES_HOME/.env" ] && cp "$HERMES_HOME/.env" "$PROFILE_DIR/.env"
+        fi
+        # Write specialist SOUL.md and AGENTS.md
+        if [ -f "$PROFILE_TEMPLATES/$profile/SOUL.md" ]; then
+            cp "$PROFILE_TEMPLATES/$profile/SOUL.md" "$PROFILE_DIR/SOUL.md"
+        fi
+        # Copy auth.json for provider authentication
+        if [ -f "$HERMES_HOME/auth.json" ]; then
+            cp "$HERMES_HOME/auth.json" "$PROFILE_DIR/auth.json"
+            chmod 600 "$PROFILE_DIR/auth.json"
+        fi
+        if [ -f "$PROFILE_TEMPLATES/$profile/AGENTS.md" ]; then
+            cp "$PROFILE_TEMPLATES/$profile/AGENTS.md" "$PROFILE_DIR/AGENTS.md"
+        fi
+        ok "Profile '$profile' created"
+    fi
+done
+
+ok "All agent profiles ready"
+
 # ── Done ─────────────────────────────────────────────────────
 echo ""
 echo "╔══════════════════════════════════════════╗"

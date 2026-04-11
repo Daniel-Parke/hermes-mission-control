@@ -11,8 +11,6 @@ import {
   mkdirSync,
   readdirSync,
 } from "fs";
-import { join } from "path";
-
 import { HOME, HERMES_HOME, PATHS } from "@/lib/hermes";
 import { logApiError } from "@/lib/api-logger";
 
@@ -34,7 +32,7 @@ function scanForAgentsMd(
 
   try {
     // Check for AGENTS.md in this directory
-    const agentsMdPath = join(dir, "AGENTS.md");
+    const agentsMdPath = dir + "/AGENTS.md";
     if (existsSync(agentsMdPath)) {
       const stats = statSync(agentsMdPath);
       results.push({
@@ -59,7 +57,7 @@ function scanForAgentsMd(
           entry.name !== "dist" &&
           entry.name !== "build"
         ) {
-          results.push(...scanForAgentsMd(join(dir, entry.name), depth + 1, maxDepth));
+          results.push(...scanForAgentsMd(dir + "/" + entry.name, depth + 1, maxDepth));
         }
       }
     }
@@ -119,8 +117,13 @@ export async function PUT(request: NextRequest) {
     }
 
     // Security: ensure path is AGENTS.md and under HOME
-    const resolvedPath = filePath.replace("~", HOME);
-    if (!resolvedPath.endsWith("/AGENTS.md") || !resolvedPath.startsWith(HOME)) {
+    // Use replace with limit to prevent path traversal via ~~~ patterns
+    const resolvedPath = filePath.startsWith("~/")
+      ? HOME + filePath.slice(1)
+      : filePath.startsWith("~")
+        ? HOME + "/" + filePath.slice(1)
+        : filePath;
+    if (!resolvedPath.endsWith("/AGENTS.md") || !resolvedPath.startsWith(HOME + "/")) {
       return NextResponse.json(
         { error: "Can only edit AGENTS.md files under home directory" },
         { status: 403 }

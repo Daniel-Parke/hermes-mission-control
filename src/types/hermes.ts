@@ -230,12 +230,15 @@ export interface MissionTemplate {
   name: string;
   icon: string;
   color: AccentColor;
+  category: string;
+  profile: string;
   description: string;
   prompt: string;
   goals: string[];
   suggestedSkills: string[];
   defaultModel: string;
   timeoutMinutes: number;
+  isCustom?: boolean;
 }
 
 export type MissionStatus = "queued" | "dispatched" | "successful" | "failed";
@@ -248,6 +251,10 @@ export interface Mission {
   goals: string[];
   skills: string[];
   model: string;
+  profile: string;
+  missionTimeMinutes: number;
+  timeoutMinutes: number;
+  schedule: string;
   templateId: string | null;
   status: MissionStatus;
   dispatchMode: DispatchMode;
@@ -257,6 +264,13 @@ export interface Mission {
   duration: number | null;
   error: string | null;
   cronJobId?: string;
+  cronJob?: {
+    state: string;
+    enabled: boolean;
+    lastRun: string | null;
+    lastStatus: string | null;
+    schedule?: string;
+  };
 }
 
 // ── UI Component Props ─────────────────────────────────────────

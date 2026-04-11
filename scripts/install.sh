@@ -162,6 +162,46 @@ done
 
 ok "All agent profiles ready"
 
+# ── Optional: Hindsight Memory Setup ─────────────────────────
+echo ""
+echo "════════════════════════════════════════════════════════════"
+echo "  Memory Provider Setup (Optional)"
+echo "════════════════════════════════════════════════════════════"
+echo ""
+echo "  Hindsight provides long-term memory with semantic search"
+echo "  using a knowledge graph. Requires PostgreSQL + ~2GB disk."
+echo ""
+
+# Check if already configured
+HINDSIGHT_ALREADY=false
+if [ -f "$HERMES_HOME/hindsight/config.json" ]; then
+    if curl -s --max-time 3 http://127.0.0.1:8888/health 2>/dev/null | grep -q healthy; then
+        ok "Hindsight already configured and running"
+        HINDSIGHT_ALREADY=true
+    fi
+fi
+
+if [ "$HINDSIGHT_ALREADY" = false ]; then
+    read -p "  Set up Hindsight memory? [y/N]: " -n 1 -r SETUP_HINDSIGHT
+    echo ""
+
+    if [[ $SETUP_HINDSIGHT =~ ^[Yy]$ ]]; then
+        echo ""
+        if [ -f "$INSTALL_DIR/scripts/setup-hindsight.sh" ]; then
+            bash "$INSTALL_DIR/scripts/setup-hindsight.sh" || {
+                warn "Hindsight setup encountered issues"
+                echo "  You can retry later with: bash $INSTALL_DIR/scripts/setup-hindsight.sh"
+            }
+        else
+            warn "setup-hindsight.sh not found — skipping Hindsight setup"
+            echo "  Set up later with: bash ~/mission-control/scripts/setup-hindsight.sh"
+        fi
+    else
+        info "Skipping Hindsight — set up later with:"
+        echo "  bash ~/mission-control/scripts/setup-hindsight.sh"
+    fi
+fi
+
 # ── Done ─────────────────────────────────────────────────────
 echo ""
 echo "╔══════════════════════════════════════════╗"
@@ -172,8 +212,9 @@ echo "Start the server:"
 echo "  cd ~/mission-control"
 echo "  npm run start:network"
 echo ""
-echo "Or start immediately:"
-nohup node node_modules/next/dist/bin/next start -p 3000 -H 0.0.0.0 \
+echo "Or start immediately (safe restart):"
+cd "$INSTALL_DIR"
+node node_modules/next/dist/bin/next start -p 3000 -H 0.0.0.0 \
     > /dev/null 2>&1 &
 sleep 3
 if curl -s -o /dev/null -w '' http://localhost:3000 2>/dev/null; then

@@ -60,6 +60,56 @@ Update the project-level AGENTS.md file.
 
 Read environment variables from `~/.hermes/.env`. Secrets are masked as `sk-...abcd`.
 
+### GET /api/agent/profiles
+
+List all agent profiles (main + specialist profiles from `~/.hermes/profiles/`).
+
+**Response:**
+
+```json
+{
+  "data": {
+    "profiles": [
+      {
+        "id": "default",
+        "name": "Bob",
+        "description": "Main agent — full access to all tools and skills",
+        "personality": "technical",
+        "isDefault": true,
+        "skillsCount": 85,
+        "toolsCount": 0,
+        "files": [
+          { "key": "soul", "name": "SOUL.md", "path": "~/.hermes/SOUL.md", "exists": true, "size": 1234, "lastModified": "2026-04-10T..." }
+        ]
+      },
+      {
+        "id": "mc-qa-engineer",
+        "name": "Qa Engineer",
+        "description": "Quality assurance and testing",
+        "personality": "analytical",
+        "isDefault": false,
+        "skillsCount": 75,
+        "toolsCount": 0,
+        "files": [...]
+      }
+    ]
+  }
+}
+```
+
+### PUT /api/agent/personality
+
+Update the personality setting for a specific profile's `config.yaml`.
+
+```json
+{
+  "profile": "mc-qa-engineer",
+  "personality": "analytical"
+}
+```
+
+If `profile` is omitted or `"default"`, updates the main agent's config.
+
 ---
 
 ## Agents
@@ -157,6 +207,54 @@ Update an existing memory fact.
 
 Remove a memory fact. Query param: `?id=<fact-id>`.
 
+### GET /api/memory/hindsight
+
+Query the Hindsight knowledge graph memory. Requires Hindsight to be installed and configured.
+
+**Query params:**
+
+| Param | Description | Required |
+|-------|-------------|----------|
+| `action` | One of: `list`, `recall`, `reflect`, `directives`, `mental-models`, `health` | No (default: `list`) |
+| `query` | Search query (required for `recall` and `reflect`) | Depends on action |
+| `budget` | Token budget for recall/reflect | No |
+| `bank` | Memory bank name | No (default: `hermes`) |
+| `limit` | Max results for `list` | No |
+
+**Actions:**
+
+- `list` — List stored memories (supports `query` as search filter)
+- `recall` — Semantic search for relevant memories given a `query`
+- `reflect` — Generate insights from memories matching `query`
+- `directives` — List stored directives
+- `mental-models` — List stored mental models
+- `health` — Check Hindsight server health
+
+**Response:**
+
+```json
+{
+  "data": {
+    "available": true,
+    "memories": [...]
+  }
+}
+```
+
+### POST /api/memory/hindsight
+
+Retain a new memory in Hindsight.
+
+```json
+{
+  "content": "The production API uses port 8080 internally",
+  "tags": ["infrastructure", "api"],
+  "bank": "hermes"
+}
+```
+
+`bank` defaults to `"hermes"` if omitted.
+
 ---
 
 ## Missions
@@ -226,6 +324,47 @@ Read a single session transcript by ID.
 ### GET /api/skills
 
 List all available skills.
+
+### GET /api/skills/[name]
+
+Read a single skill's SKILL.md by name. Supports profile-aware lookup.
+
+**Query params:**
+
+| Param | Description | Default |
+|-------|-------------|---------|
+| `profile` | Profile ID to search in | `default` |
+
+Searches the profile's skills directory first, then falls back to the default `~/.hermes/skills/` directory.
+
+**Response:**
+
+```json
+{
+  "data": {
+    "name": "mission-control",
+    "path": "~/.hermes/skills/mission-control/SKILL.md",
+    "content": "# Mission Control\n...",
+    "size": 4567,
+    "lastModified": "2026-04-10T..."
+  }
+}
+```
+
+### PUT /api/skills/[name]/toggle
+
+Toggle a skill on or off for a profile by managing the `skills.disabled` list in `config.yaml`.
+
+```json
+{
+  "profile": "mc-qa-engineer",
+  "enabled": false
+}
+```
+
+- `enabled: false` — adds the skill to `skills.disabled`
+- `enabled: true` — removes it from `skills.disabled`
+- `profile` defaults to `"default"` if omitted
 
 ### GET /api/skills/[...path]
 
@@ -310,4 +449,31 @@ Check for available updates from the remote repository.
 
 ### POST /api/update
 
-Trigger an update (pull, build, restart).
+Trigger an update or restart. Uses a lock file to prevent concurrent deploys.
+
+```json
+{ "action": "update" }
+```
+
+**Actions:**
+
+| Action | Behaviour |
+|--------|-----------|
+| `update` | Fetch from `origin/main`, checkout, reset hard, npm install (if needed), build, restart. Aborts without restart if build fails. |
+| `restart` | Restart the server only (no git/build). |
+
+If `action` is omitted, defaults to `"update"`.
+
+**Response (update):**
+
+```json
+{
+  "data": {
+    "action": "update",
+    "status": "started",
+    "newHash": "abc1234"
+  }
+}
+```
+
+Returns `409` if an update is already in progress (lock file detected).

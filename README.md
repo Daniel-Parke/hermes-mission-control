@@ -18,6 +18,7 @@ A command centre dashboard for [Hermes Agent](https://github.com/NousResearch/he
 | **Config Editor** | Full config.yaml editing with 27 sections + HERMES.md + .env viewer |
 | **Session Browser** | View conversation transcripts across all gateways |
 | **Memory** | Hindsight (semantic search) or Holographic (structured facts) memory management |
+| **Personalities** | Per-profile personality configuration (technical, analytical, creative, etc.) |
 | **Skills Manager** | Profile-aware skills with inline toggle switches and content viewer |
 | **Tools Manager** | Profile-aware toolsets with per-tool toggles per platform |
 | **Gateway** | Monitor platform connections (Discord, Telegram, etc.) |
@@ -147,10 +148,11 @@ Each profile has its own SOUL.md, AGENTS.md, USER.md, MEMORY.md, and skill/tool 
 | `install.sh` | One-command installer (fresh or reinstall) |
 | `setup.sh` | Post-clone setup (npm install, build, test) |
 | `setup-hindsight.sh` | Standalone Hindsight memory installer |
-| `restart.sh` | Safe server restart (builds, no nohup) |
-| `safe-restart.sh` | Minimal restart (kill + start) |
-| `update.sh` | Pull from main, build, restart |
+| `restart.sh` | Safe server restart (kill port 3000, start, health check) |
+| `safe-restart.sh` | Minimal restart (kill + start, no health check) |
+| `update.sh` | Pull from main, npm install (if needed), build, update profiles, restart |
 | `backup-hermes-config.sh` | Backup/restore Hermes config |
+| `hindsight-server.py` | Hindsight memory backend server |
 
 ---
 
@@ -187,6 +189,40 @@ Key config sections:
 
 ---
 
+## Deployment
+
+```bash
+# 1. Build (must pass before deploy)
+cd ~/mission-control && npm run build
+
+# 2. Kill existing server
+fuser -k 3000/tcp 2>/dev/null; sleep 2
+
+# 3. Start server (use background=true in terminal tool — NEVER use nohup ... &)
+node node_modules/next/dist/bin/next start -p 3000 -H 0.0.0.0
+```
+
+Or use the Update API for zero-downtime-style deploys:
+
+```bash
+# Check for updates
+curl http://localhost:3000/api/update
+
+# Trigger update (pull + build + restart)
+curl -X POST http://localhost:3000/api/update \
+  -H "Content-Type: application/json" \
+  -d '{"action": "update"}'
+
+# Restart only
+curl -X POST http://localhost:3000/api/update \
+  -H "Content-Type: application/json" \
+  -d '{"action": "restart"}'
+```
+
+The update endpoint uses a lock file (`/tmp/mc-deploy.lock`) to prevent concurrent deploys. Build failures abort without restarting the server.
+
+---
+
 ## API
 
 All API routes follow the `{ data?, error? }` envelope pattern:
@@ -209,6 +245,19 @@ Error logging: all catch blocks call `logApiError(route, context, error)`.
 - Hermes Agent installed at `~/.hermes/`
 - (Optional) PostgreSQL + pgvector for Hindsight memory
 - (Optional) Python 3.11 + venv for Hindsight
+
+---
+
+## Documentation
+
+Full documentation lives in the `docs/` directory:
+
+| Document | Description |
+|----------|-------------|
+| [API Reference](docs/API.md) | All REST endpoints with request/response formats |
+| [Architecture](docs/ARCHITECTURE.md) | System design, data flow, directory structure |
+| [Contributing](docs/CONTRIBUTING.md) | Development workflow, code standards, PR checklist |
+| [Branching](docs/BRANCHING.md) | Git branching strategy and agent permissions |
 
 ---
 

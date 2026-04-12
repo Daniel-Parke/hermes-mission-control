@@ -62,28 +62,33 @@ mission-control/
 │   │   └── layout.tsx                # Root layout + sidebar
 │   ├── components/
 │   │   ├── ui/                       # Reusable primitives
+│   │   │   ├── AutoTextarea.tsx
+│   │   │   ├── Badge.tsx
 │   │   │   ├── Button.tsx
 │   │   │   ├── Card.tsx
-│   │   │   ├── Modal.tsx
-│   │   │   ├── Badge.tsx
-│   │   │   ├── Input.tsx
-│   │   │   ├── Select.tsx
-│   │   │   ├── Textarea.tsx
-│   │   │   ├── Toast.tsx
-│   │   │   ├── Skeleton.tsx
-│   │   │   ├── LoadingSpinner.tsx
-│   │   │   ├── AutoTextarea.tsx
 │   │   │   ├── CategoryAccordion.tsx
-│   │   │   ├── TemplateCard.tsx
-│   │   │   ├── ProfileSelector.tsx
+│   │   │   ├── Input.tsx
 │   │   │   ├── IntervalSelector.tsx
+│   │   │   ├── LoadingSpinner.tsx
 │   │   │   ├── MissionTimeSelector.tsx
-│   │   │   └── TimeoutSelector.tsx
-│   │   └── layout/
-│   │       ├── Sidebar.tsx
-│   │       ├── SidebarContext.tsx
-│   │       ├── PageHeader.tsx
-│   │       └── MobileHeader.tsx
+│   │   │   ├── Modal.tsx
+│   │   │   ├── ProfileSelector.tsx
+│   │   │   ├── Select.tsx
+│   │   │   ├── TemplateCard.tsx
+│   │   │   ├── TimeoutSelector.tsx
+│   │   │   └── Toast.tsx
+│   │   ├── layout/
+│   │   │   ├── MobileHeader.tsx
+│   │   │   ├── PageHeader.tsx
+│   │   │   ├── Sidebar.tsx
+│   │   │   └── SidebarContext.tsx
+│   │   ├── memory/
+│   │   │   └── HindsightBrowser.tsx   # Hindsight knowledge graph UI
+│   │   └── story-weaver/
+│   │       ├── ChapterList.tsx
+│   │       ├── GenerateOverlay.tsx
+│   │       ├── ReaderSettings.tsx
+│   │       └── StoryCard.tsx
 │   ├── lib/
 │   │   ├── api.ts                    # Typed fetch wrappers
 │   │   ├── api-logger.ts             # Error logging + safe JSON parsing
@@ -92,7 +97,8 @@ mission-control/
 │   │   ├── theme.ts                  # Colour maps
 │   │   ├── config-schema.ts          # Config section definitions
 │   │   ├── behavior-files.ts         # Behaviour file metadata
-│   │   └── mission-helpers.ts        # Mission dispatch helpers
+│   │   ├── mission-helpers.ts        # Mission dispatch helpers
+│   │   └── memory-providers/         # Memory provider abstraction layer
 │   └── types/
 │       └── hermes.ts                 # All TypeScript interfaces
 ├── config/
@@ -105,11 +111,14 @@ mission-control/
 ├── hooks/
 │   └── pre-push                      # Git pre-push hook
 ├── scripts/
-│   ├── install.sh                    # Standalone installer
-│   ├── setup.sh                      # Post-clone setup
-│   ├── restart.sh                    # Server restart
-│   ├── update.sh                     # Pull + build + restart
-│   └── backup-hermes-config.sh       # Config backup
+│   ├── install.sh                    # One-command installer (fresh or reinstall)
+│   ├── setup.sh                      # Post-clone setup (npm install, build, test)
+│   ├── setup-hindsight.sh            # Standalone Hindsight memory installer
+│   ├── restart.sh                    # Safe server restart (kill + start + health check)
+│   ├── safe-restart.sh               # Minimal restart (kill + start)
+│   ├── update.sh                     # Pull + npm install + build + profiles + restart
+│   ├── backup-hermes-config.sh       # Config backup
+│   └── hindsight-server.py           # Hindsight memory backend server
 ├── data/
 │   ├── missions/                     # Mission JSON files
 │   └── templates/                    # Custom template JSON files
@@ -220,6 +229,37 @@ Test files live in `src/__tests__/`:
 | `prompt-builder.test.ts` | Story Weaver prompt builder |
 | `update.test.ts`         | Update mechanism            |
 | `setup.test.ts`          | Jest setup verification     |
+
+---
+
+## Hindsight Integration
+
+Hindsight is a knowledge graph memory provider. Mission Control integrates via a Python bridge script.
+
+**Architecture:**
+
+```
+Browser → /api/memory/hindsight → Next.js API route
+                                      │
+                                      ▼
+                                child_process.exec()
+                                      │
+                                      ▼
+                           ~/.hermes/scripts/hindsight_bridge.py
+                                      │
+                                      ▼
+                           Hindsight server (PostgreSQL + pgvector)
+```
+
+**Key files:**
+- `src/app/api/memory/hindsight/route.ts` — API route (GET for list/recall/reflect, POST for retain)
+- `src/components/memory/HindsightBrowser.tsx` — React UI component
+- `scripts/setup-hindsight.sh` — Installation script
+- `scripts/hindsight-server.py` — Backend server (runs on port 8888)
+
+**Supported actions:** `list`, `recall`, `reflect`, `retain`, `directives`, `mental-models`, `health`
+
+The bridge script is invoked via `child_process.exec()` with a 15-second timeout. If Hindsight is unavailable, the API returns `{ data: { available: false, memories: [] } }` rather than throwing.
 
 ---
 

@@ -187,6 +187,41 @@ Before submitting a PR:
 
 ---
 
+## Deployment
+
+### Manual
+
+```bash
+# 1. Build (must pass)
+cd ~/mission-control && npm run build
+
+# 2. Kill existing server
+fuser -k 3000/tcp 2>/dev/null; sleep 2
+
+# 3. Start (use background=true in terminal tool — never nohup ... &)
+node node_modules/next/dist/bin/next start -p 3000 -H 0.0.0.0
+```
+
+### Via API
+
+```bash
+curl -X POST http://localhost:3000/api/update \
+  -H "Content-Type: application/json" \
+  -d '{"action": "update"}'
+```
+
+The update endpoint fetches from `origin/main`, runs `npm install` if `package.json` changed, builds, and restarts. A lock file prevents concurrent deploys. Build failures abort without restarting.
+
+### Scripts
+
+```bash
+bash scripts/restart.sh         # Restart only (no git/build)
+bash scripts/update.sh          # Pull + build + restart
+bash scripts/update.sh --restart-only  # Restart only (same as restart.sh)
+```
+
+---
+
 ## Project Structure
 
 See [docs/ARCHITECTURE.md](ARCHITECTURE.md) for full directory structure and data flow.

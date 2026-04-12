@@ -1,7 +1,9 @@
 import { existsSync, readdirSync } from "fs";
+import { resolve } from "path";
 import { TEMPLATES } from "@/lib/mission-helpers";
 
-const PROFILES_DIR = "/home/daniel/mission-control/scripts/profiles";
+// Use relative path from project root — works on CI and locally
+const PROFILES_DIR = resolve(process.cwd(), "scripts/profiles");
 
 const EXPECTED_PROFILES = [
   "mc-qa-engineer",

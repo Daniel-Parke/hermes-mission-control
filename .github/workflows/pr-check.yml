@@ -1,16 +1,49 @@
 name: PR Check
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   pull_request:
-    branches: [main]
+    branches: [main, dev]
+  workflow_dispatch:
 
 jobs:
-  build-and-test:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+        continue-on-error: true
+
+  build-test-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
       - run: npm ci
       - run: npm run build
       - run: npm test
+      - name: Coverage report
+        run: npm run test:coverage
+      - name: Upload coverage HTML
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/lcov-report
+          if-no-files-found: ignore
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+      - name: E2E smoke
+        run: npm run test:e2e
+        env:
+          CI: true

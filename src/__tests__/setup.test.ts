@@ -1,77 +1,68 @@
-import { existsSync, mkdirSync, rmSync } from "fs";
+import { existsSync, mkdtempSync, mkdirSync, rmSync, writeFileSync } from "fs";
+import { tmpdir } from "os";
 import { join } from "path";
-import { HERMES_HOME, PATHS } from "@/lib/hermes";
 
-describe("Setup & Installation", () => {
-  describe("Hermes Home Detection", () => {
-    it("should detect HERMES_HOME from environment", () => {
-      expect(HERMES_HOME).toBeTruthy();
-      expect(HERMES_HOME.length).toBeGreaterThan(0);
-    });
-
-    it("should check config.yaml at expected path", () => {
-      // config.yaml exists when Hermes agent is installed; CI may not have it
-      const hasConfig = existsSync(PATHS.config);
-      expect(typeof hasConfig).toBe("boolean");
-    });
-  });
-
-  describe("Data Directory Structure", () => {
-    it("should create missions directory if missing", () => {
-      if (!existsSync(PATHS.missions)) {
-        mkdirSync(PATHS.missions, { recursive: true });
-      }
-      expect(existsSync(PATHS.missions)).toBe(true);
-    });
-
-    it("should create templates directory if missing", () => {
-      if (!existsSync(PATHS.templates)) {
-        mkdirSync(PATHS.templates, { recursive: true });
-      }
-      expect(existsSync(PATHS.templates)).toBe(true);
-    });
-
-    it("should have missions directory under HERMES_HOME", () => {
-      expect(PATHS.missions).toContain(HERMES_HOME);
+describe("Setup & paths (hermetic)", () => {
+  it("HERMES_HOME drives PATHS.missions and templates under mission-control/data", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "mc-setup-"));
+    const prev = process.env.HERMES_HOME;
+    process.env.HERMES_HOME = tmp;
+    jest.resetModules();
+    try {
+      const { HERMES_HOME, PATHS } = await import("@/lib/hermes");
+      expect(HERMES_HOME).toBe(tmp);
+      expect(PATHS.missions).toBe(tmp + "/mission-control/data/missions");
+      expect(PATHS.templates).toBe(tmp + "/mission-control/data/templates");
       expect(PATHS.missions).toContain("mission-control");
-    });
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+      if (prev !== undefined) process.env.HERMES_HOME = prev;
+      else delete process.env.HERMES_HOME;
+      jest.resetModules();
+    }
   });
 
-  describe("Standard File Locations", () => {
-    it("should have .env file or be optional", () => {
-      const hasEnv = existsSync(PATHS.env);
-      // .env is optional - some users use env vars directly
-      expect(typeof hasEnv).toBe("boolean");
-    });
-
-    it("should check skills directory", () => {
-      // Skills dir exists when Hermes agent is installed; CI may not have it
-      const hasSkills = existsSync(PATHS.skills);
-      expect(typeof hasSkills).toBe("boolean");
-    });
-
-    it("should have sessions directory or create on demand", () => {
-      const hasSessions = existsSync(PATHS.sessions);
-      // Sessions dir is created by the gateway, not always present
-      expect(typeof hasSessions).toBe("boolean");
-    });
+  it("creates missions and templates dirs idempotently in temp home", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "mc-setup-"));
+    const prev = process.env.HERMES_HOME;
+    process.env.HERMES_HOME = tmp;
+    jest.resetModules();
+    try {
+      const { PATHS } = await import("@/lib/hermes");
+      if (!existsSync(PATHS.missions)) mkdirSync(PATHS.missions, { recursive: true });
+      if (!existsSync(PATHS.templates)) mkdirSync(PATHS.templates, { recursive: true });
+      expect(existsSync(PATHS.missions)).toBe(true);
+      expect(existsSync(PATHS.templates)).toBe(true);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+      if (prev !== undefined) process.env.HERMES_HOME = prev;
+      else delete process.env.HERMES_HOME;
+      jest.resetModules();
+    }
   });
 
-  describe("Graceful Fallbacks", () => {
-    it("should handle missing memory database", () => {
-      // Memory page should show empty state, not crash
-      const hasMemoryDb = existsSync(PATHS.memoryDb);
-      expect(typeof hasMemoryDb).toBe("boolean");
-    });
-
-    it("should handle missing cron jobs file", () => {
-      const hasCronJobs = existsSync(PATHS.cronJobs);
-      expect(typeof hasCronJobs).toBe("boolean");
-    });
-
-    it("should handle missing logs directory", () => {
-      const hasLogs = existsSync(PATHS.logs);
-      expect(typeof hasLogs).toBe("boolean");
-    });
+  it("optional files are boolean flags without requiring real ~/.hermes", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "mc-setup-"));
+    const prev = process.env.HERMES_HOME;
+    process.env.HERMES_HOME = tmp;
+    mkdirSync(join(tmp, "skills"), { recursive: true });
+    mkdirSync(join(tmp, "sessions"), { recursive: true });
+    jest.resetModules();
+    try {
+      const { PATHS } = await import("@/lib/hermes");
+      writeFileSync(join(tmp, "config.yaml"), "x: 1\n", "utf-8");
+      expect(typeof existsSync(PATHS.config)).toBe("boolean");
+      expect(typeof existsSync(PATHS.env)).toBe("boolean");
+      expect(typeof existsSync(PATHS.skills)).toBe("boolean");
+      expect(typeof existsSync(PATHS.sessions)).toBe("boolean");
+      expect(typeof existsSync(PATHS.memoryDb)).toBe("boolean");
+      expect(typeof existsSync(PATHS.cronJobs)).toBe("boolean");
+      expect(typeof existsSync(PATHS.logs)).toBe("boolean");
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+      if (prev !== undefined) process.env.HERMES_HOME = prev;
+      else delete process.env.HERMES_HOME;
+      jest.resetModules();
+    }
   });
 });

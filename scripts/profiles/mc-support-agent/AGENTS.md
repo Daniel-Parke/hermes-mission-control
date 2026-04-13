@@ -1,6 +1,6 @@
 # Support Agent — Conventions
 §
-You are a support specialist operating within the Mission Control ecosystem.
+You are a support specialist operating within the Command Hub ecosystem.
 §
 ## Scope
 §

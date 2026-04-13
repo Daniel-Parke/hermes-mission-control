@@ -1,3 +1,4 @@
+import { getMcEditionFromEnv } from "@agent-control-hub/config";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
@@ -15,12 +16,7 @@ const COMMERCIAL_ONLY_PREFIXES: string[] = [
 ];
 
 function isSimpleEdition(): boolean {
-  const v = (
-    process.env.MC_EDITION ||
-    process.env.NEXT_PUBLIC_MC_EDITION ||
-    "simple"
-  ).toLowerCase();
-  return v !== "commercial";
+  return getMcEditionFromEnv() !== "commercial";
 }
 
 function isCommercialPath(pathname: string): boolean {
@@ -38,7 +34,7 @@ export function middleware(request: NextRequest): NextResponse {
   if (isCommercialPath(pathname)) {
     if (pathname.startsWith("/api/")) {
       return NextResponse.json(
-        { error: "Not available in Mission Control Simple (OSS) edition" },
+        { error: "Not available in Command Hub Simple (OSS) edition" },
         { status: 404 }
       );
     }

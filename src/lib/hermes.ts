@@ -8,8 +8,9 @@ import { homedir } from "os";
 // paths independently. This ensures consistency and portability.
 // Default HERMES_HOME matches hermes-agent hermes_constants.get_hermes_home().
 //
-// Mission Control app data defaults to $HOME/mission-control/data so paths align with
-// nested Hermes cron/jobs.py (mark_job_run mission file updates). Override with MC_DATA_DIR.
+// Command Hub app data defaults to $HOME/command-hub/data so paths align with
+// nested Hermes cron/jobs.py (mark_job_run mission file updates).
+// Override with `CH_DATA_DIR`, legacy `MC_DATA_DIR`, or `MISSION_CONTROL_DATA_DIR`.
 
 export const HERMES_HOME =
   process.env.HERMES_HOME || homedir() + "/.hermes";
@@ -19,20 +20,27 @@ function normalizeDirPath(dir: string): string {
 }
 
 /**
- * Mission Control JSON data root (missions, templates, stories, …).
+ * Command Hub JSON data root (missions, templates, stories, …).
  * Some keys (`operations`, `taskLists`, …) are on-disk paths used by Hermes or commercial tooling;
  * the OSS app does not ship UIs for every path listed here.
- * Default: `$HOME/mission-control/data`. Override with `MC_DATA_DIR` or `MISSION_CONTROL_DATA_DIR`.
+ * Default: `$HOME/command-hub/data`. Override with `CH_DATA_DIR`, `MC_DATA_DIR`, or `MISSION_CONTROL_DATA_DIR`.
  */
 export function getMcDataDir(): string {
-  const raw = process.env.MC_DATA_DIR || process.env.MISSION_CONTROL_DATA_DIR;
+  const raw =
+    process.env.CH_DATA_DIR ||
+    process.env.MC_DATA_DIR ||
+    process.env.MISSION_CONTROL_DATA_DIR;
   if (raw && String(raw).trim()) {
     return normalizeDirPath(String(raw).trim());
   }
-  return normalizeDirPath(homedir() + "/mission-control/data");
+  return normalizeDirPath(homedir() + "/command-hub/data");
 }
 
+/** @deprecated Use CH_DATA_DIR; kept for compatibility with existing imports. */
 export const MC_DATA_DIR = getMcDataDir();
+
+/** Canonical alias for app data root (same value as MC_DATA_DIR). */
+export const CH_DATA_DIR = MC_DATA_DIR;
 
 // Standard file paths
 export const PATHS = {

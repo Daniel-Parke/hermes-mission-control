@@ -1,22 +1,32 @@
 // ═══════════════════════════════════════════════════════════════
-// Optional API auth + feature flags for Mission Control
+// Optional API auth + feature flags for Command Hub
 // ═══════════════════════════════════════════════════════════════
 
+import { getMcApiKeyFromEnv, getMcEditionFromEnv } from "@agent-control-hub/config";
 import { NextRequest, NextResponse } from "next/server";
 
 import { isCommercialLicenseValid } from "@/lib/commercial-license";
 
-/** When set, mutating routes require this key (header X-MC-API-Key or Authorization: Bearer). */
+function firstEnvFlag(keys: string[]): string | undefined {
+  for (const k of keys) {
+    const v = process.env[k];
+    if (v !== undefined && String(v).trim() !== "") return String(v).trim();
+  }
+  return undefined;
+}
+
+/** When set, mutating routes require this key (header X-CH-API-Key, legacy X-MC-API-Key, or Authorization: Bearer). */
 export function getMcApiKey(): string {
-  return (process.env.MC_API_KEY || "").trim();
+  return getMcApiKeyFromEnv();
 }
 
 /**
- * Deploy/update API. In production, requires MC_ENABLE_DEPLOY_API=true.
+ * Deploy/update API. In production, requires CH_ENABLE_DEPLOY_API or MC_ENABLE_DEPLOY_API=true.
  * In non-production, defaults to enabled unless explicitly set to "false".
  */
 export function isDeployApiEnabled(): boolean {
-  const v = process.env.MC_ENABLE_DEPLOY_API?.trim().toLowerCase();
+  const raw = firstEnvFlag(["CH_ENABLE_DEPLOY_API", "MC_ENABLE_DEPLOY_API"]);
+  const v = raw?.toLowerCase();
   if (v === "1" || v === "true" || v === "yes") return true;
   if (v === "0" || v === "false" || v === "no") return false;
   return process.env.NODE_ENV === "production" ? false : true;
@@ -24,12 +34,13 @@ export function isDeployApiEnabled(): boolean {
 
 /** Read-only mode: block writes (except GET). */
 export function isMcReadOnly(): boolean {
-  const v = process.env.MC_READ_ONLY;
+  const raw = firstEnvFlag(["CH_READ_ONLY", "MC_READ_ONLY"]);
+  const v = raw?.toLowerCase();
   return v === "1" || v === "true";
 }
 
 /**
- * Returns 401 response if MC_API_KEY is set and request lacks a valid key.
+ * Returns 401 response if an API key is set and request lacks a valid key.
  * Returns null if authorized or auth disabled.
  */
 export function requireMcApiKey(request: NextRequest): NextResponse | null {
@@ -37,6 +48,7 @@ export function requireMcApiKey(request: NextRequest): NextResponse | null {
   if (!key) return null;
 
   const header =
+    request.headers.get("x-ch-api-key") ||
     request.headers.get("x-mc-api-key") ||
     request.headers.get("authorization")?.replace(/^Bearer\s+/i, "").trim() ||
     "";
@@ -50,7 +62,10 @@ export function requireMcApiKey(request: NextRequest): NextResponse | null {
 export function requireNotReadOnly(): NextResponse | null {
   if (isMcReadOnly()) {
     return NextResponse.json(
-      { error: "Mission Control is in read-only mode (MC_READ_ONLY)" },
+      {
+        error:
+          "Command Hub is in read-only mode (set CH_READ_ONLY or legacy MC_READ_ONLY)",
+      },
       { status: 503 }
     );
   }
@@ -62,7 +77,7 @@ export function requireDeployApiEnabled(): NextResponse | null {
     return NextResponse.json(
       {
         error:
-          "Deploy API disabled. Set MC_ENABLE_DEPLOY_API=true to allow update/restart.",
+          "Deploy API disabled. Set CH_ENABLE_DEPLOY_API=true (or legacy MC_ENABLE_DEPLOY_API) to allow update/restart.",
       },
       { status: 403 }
     );
@@ -71,12 +86,11 @@ export function requireDeployApiEnabled(): NextResponse | null {
 }
 
 /**
- * When `MC_EDITION=commercial`, mutating commercial-only APIs require a valid Ed25519 license
- * (`AC_LICENSE_KEY` + `AC_LICENSE_ED25519_PUBLIC_PEM`) in addition to optional `MC_API_KEY`.
+ * When edition is commercial, mutating commercial-only APIs require a valid Ed25519 license
+ * (`AC_LICENSE_KEY` + `AC_LICENSE_ED25519_PUBLIC_PEM`) in addition to optional API key.
  */
 export function requireCommercialLicense(): NextResponse | null {
-  const edition = (process.env.MC_EDITION || "").toLowerCase();
-  if (edition !== "commercial") return null;
+  if (getMcEditionFromEnv() !== "commercial") return null;
   if (isCommercialLicenseValid()) return null;
   return NextResponse.json(
     {

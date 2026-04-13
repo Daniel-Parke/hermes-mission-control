@@ -1,4 +1,4 @@
-# Deploying Mission Control
+# Deploying Command Hub
 
 ## Host and port
 
@@ -9,7 +9,7 @@ Next.js reads **`PORT`** (default 3000). For LAN access bind to all interfaces (
 | Variable | Purpose |
 |----------|---------|
 | `HERMES_HOME` | Hermes agent data root (must match the running agent). |
-| `MC_DATA_DIR` | Mission Control JSON root (default `~/mission-control/data`). |
+| `MC_DATA_DIR` | Command Hub JSON root (default `~/command-hub/data`). |
 | `MC_API_KEY` | **Strongly recommended** in any shared or remote deployment; required header `X-MC-API-Key` or `Authorization: Bearer` for mutating routes. |
 | `MC_READ_ONLY` | Set to `1` for read-only UI/API. |
 

@@ -1,6 +1,6 @@
-# Mission Control Simple (OSS) scope
+# Command Hub Simple (OSS) scope
 
-This repository ships **Mission Control Simple**: a Next.js control plane for [Hermes Agent](https://github.com/NousResearch/hermes-agent). Execution stays in Hermes; this app edits `jobs.json`, mission JSON, and `config.yaml` through audited APIs.
+This repository ships **Command Hub Simple**: a Next.js control plane for [Hermes Agent](https://github.com/NousResearch/hermes-agent). Execution stays in Hermes; this app edits `jobs.json`, mission JSON, and `config.yaml` through audited APIs.
 
 ## Included in this tree
 
@@ -15,13 +15,13 @@ Commercial-only UI routes and APIs are **not present as source files** in this e
 ## Memory providers (Hindsight, Holographic, none)
 
 - **Hindsight:** Facts are managed through Hermes agent tools (for example retain/recall flows). This dashboard does **not** offer full CRUD on Hindsight facts; it surfaces status and guidance.
-- **Holographic:** Structured facts may be read and edited via Mission Control APIs where configured.
+- **Holographic:** Structured facts may be read and edited via Command Hub APIs where configured.
 - **None / unset:** Memory UI reflects that no provider is configured; follow Hermes CLI/docs to set up a provider.
 
 ## Models and profiles
 
-**Inference endpoints and default models** are defined in Hermes (`config.yaml` per profile, environment, etc.), not in Mission Control core. This app exposes **config editing** and mission/cron payloads that include **per-run model fields** where the schema allows, so you can vary models mission-by-mission or job-by-job for token/cost tuning. Changing a profile’s default model is done through the **Config** editor (profile `config.yaml`), not via a dedicated profiles mutation API.
+**Inference endpoints and default models** are defined in Hermes (`config.yaml` per profile, environment, etc.), not in Command Hub core. This app exposes **config editing** and mission/cron payloads that include **per-run model fields** where the schema allows, so you can vary models mission-by-mission or job-by-job for token/cost tuning. Changing a profile’s default model is done through the **Config** editor (profile `config.yaml`), not via a dedicated profiles mutation API.
 
 ## Hermes documentation
 
-Follow upstream Hermes / Nous Research docs for agent behaviour, jobs, and memory providers. Model endpoints are configured in Hermes, not Mission Control.
+Follow upstream Hermes / Nous Research docs for agent behaviour, jobs, and memory providers. Model endpoints are configured in Hermes, not Command Hub.

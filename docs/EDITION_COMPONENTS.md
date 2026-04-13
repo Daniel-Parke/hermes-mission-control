@@ -1,6 +1,6 @@
 # Edition components (Simple vs commercial)
 
-Mission Control Simple is produced from an **upstream private monorepo** via an allowlisted OSS export. These patterns keep commercial-only code out of this repository.
+Command Hub Simple is produced from an **upstream private monorepo** via an allowlisted OSS export. These patterns keep commercial-only code out of this repository.
 
 ## 1. Commercial-only routes and APIs
 

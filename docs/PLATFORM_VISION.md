@@ -1,6 +1,6 @@
-# Mission Control platform vision (OSS)
+# Command Hub platform vision (OSS)
 
-Mission Control is the **Next.js control plane** for [Hermes Agent](https://github.com/NousResearch/hermes-agent): missions, cron, configuration, sessions, memory, and day-to-day operator workflows. Execution remains in **Hermes** (gateway, scheduler). This app edits Hermes and Mission Control JSON through audited REST routes.
+Command Hub is the **Next.js control plane** for [Hermes Agent](https://github.com/NousResearch/hermes-agent): missions, cron, configuration, sessions, memory, and day-to-day operator workflows. Execution remains in **Hermes** (gateway, scheduler). This app edits Hermes and Command Hub JSON through audited REST routes.
 
 ## Architecture (layers)
 
@@ -16,11 +16,11 @@ flowchart TB
 ```
 
 - **`HERMES_HOME`** (`~/.hermes`): `config.yaml`, `cron/jobs.json`, sessions, skills, logs.
-- **`MC_DATA_DIR`** (default `~/mission-control/data`): missions, templates, stories, Rec Room data, and other JSON used by this build. Some directory names may exist for compatibility with broader Hermes tooling; **this OSS app only ships UIs and APIs present in the repository** (see [OSS_SCOPE.md](OSS_SCOPE.md)).
+- **`MC_DATA_DIR`** (default `~/command-hub/data`): missions, templates, stories, Rec Room data, and other JSON used by this build. Some directory names may exist for compatibility with broader Hermes tooling; **this OSS app only ships UIs and APIs present in the repository** (see [OSS_SCOPE.md](OSS_SCOPE.md)).
 
 ## Scheduling
 
-- Cron jobs are rows in **`HERMES_HOME/cron/jobs.json`**. Mission Control uses a file lock compatible with Hermes.
+- Cron jobs are rows in **`HERMES_HOME/cron/jobs.json`**. Command Hub uses a file lock compatible with Hermes.
 - Recurring jobs use **`repeat.times: null`** for infinite runs (Hermes canonical).
 - **`parseSchedule`** accepts simple intervals, ISO one-shots, and five- or six-field cron strings; invalid input is rejected on user-facing routes.
 

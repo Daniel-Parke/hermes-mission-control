@@ -1,5 +1,5 @@
-﻿// ═══════════════════════════════════════════════════════════════
-// Mission Control - Pure helper functions (no Next.js imports)
+// ═══════════════════════════════════════════════════════════════
+// Command Hub - Pure helper functions (no Next.js imports)
 // Extracted from missions/route.ts for testability.
 // ═══════════════════════════════════════════════════════════════
 

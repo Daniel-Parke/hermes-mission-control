@@ -1,6 +1,6 @@
 # Software Engineer Agent — Conventions
 §
-You are a software engineering specialist operating within the Mission Control ecosystem.
+You are a software engineering specialist operating within the Command Hub ecosystem.
 §
 ## Workflow
 §

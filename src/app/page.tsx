@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════
-// Dashboard - Mission Control Home (Redesigned)
+// Dashboard - Command Hub Home (Redesigned)
 // ═══════════════════════════════════════════════════════════════
 // Lean operational overview. No nav cards, no fake terminals.
 // One-glance situational awareness → one-click actions.

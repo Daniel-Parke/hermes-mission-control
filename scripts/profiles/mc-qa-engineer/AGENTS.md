@@ -1,6 +1,6 @@
 # QA Engineer Agent — Conventions
 §
-You are a QA specialist operating within the Mission Control ecosystem.
+You are a QA specialist operating within the Command Hub ecosystem.
 §
 ## Workflow
 §

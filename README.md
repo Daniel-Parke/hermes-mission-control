@@ -1,4 +1,4 @@
-# Hermes Mission Control
+# Command Hub (Hermes)
 
 A command centre dashboard for [Hermes Agent](https://github.com/NousResearch/hermes-agent). Monitor your agent fleet, dispatch missions, manage configurations, and control everything from one place.
 
@@ -33,8 +33,8 @@ A command centre dashboard for [Hermes Agent](https://github.com/NousResearch/he
 
 ```bash
 # Clone and install
-git clone https://github.com/Daniel-Parke/hermes-mission-control.git ~/mission-control
-cd ~/mission-control
+git clone https://github.com/Daniel-Parke/hermes-control-hub.git ~/command-hub
+cd ~/command-hub
 bash scripts/install.sh
 ```
 
@@ -54,16 +54,16 @@ The dashboard will be available at `http://localhost:3000` (or `http://localhost
 
 If `npm run start` fails because port 3000 is taken, stop the old server first (often a previous `next start`). On Linux: `fuser -k 3000/tcp` or use another port, e.g. `PORT=3001 npm run start`. A small helper script is available at `scripts/restart-mc.sh` (stops listeners on `PORT`, then runs `npm run start`).
 
-### Resilience: Mission Control vs Hermes
+### Resilience: Command Hub vs Hermes
 
-- **Scheduled missions and cron jobs** live in Hermes’ `~/.hermes/cron/jobs.json`. Once written, the **Hermes** process (for example the gateway) **runs** them on its scheduler tick. The Mission Control web app is only an editor for that file plus local dashboard JSON under **`$HOME/mission-control/data/`** (override with **`MC_DATA_DIR`** or **`MISSION_CONTROL_DATA_DIR`** so Hermes `mark_job_run` can update mission files in the same place). See [MIGRATION.md](MIGRATION.md) if you used the older default under `~/.hermes/mission-control/data/`.
-- If **Mission Control (Next.js) stops**, jobs **keep firing** as long as **Hermes** is still running.
-- If **Hermes stops**, nothing runs until you start Hermes again—there is no separate scheduler inside Mission Control.
+- **Scheduled missions and cron jobs** live in Hermes’ `~/.hermes/cron/jobs.json`. Once written, the **Hermes** process (for example the gateway) **runs** them on its scheduler tick. The Command Hub web app is only an editor for that file plus local dashboard JSON under **`$HOME/command-hub/data/`** (override with **`MC_DATA_DIR`** or **`MISSION_CONTROL_DATA_DIR`** so Hermes `mark_job_run` can update mission files in the same place). See [MIGRATION.md](MIGRATION.md) if you used the older default under `~/.hermes/mission-control/data/`.
+- If **Command Hub (Next.js) stops**, jobs **keep firing** as long as **Hermes** is still running.
+- If **Hermes stops**, nothing runs until you start Hermes again—there is no separate scheduler inside Command Hub.
 
 ### Platforms
 
 - **Linux / macOS / WSL2:** fully supported (same as Hermes).
-- **Windows (native):** use **WSL2** for Hermes and Mission Control so paths align with `~/.hermes`. Native Windows Node is not a supported target for this stack.
+- **Windows (native):** use **WSL2** for Hermes and Command Hub so paths align with `~/.hermes`. Native Windows Node is not a supported target for this stack.
 
 ### Security-related environment variables
 
@@ -89,7 +89,7 @@ npm run build && PLAYWRIGHT_OSS_ONLY=1 npm run test:e2e   # Playwright OSS smoke
 ## Prerequisites
 
 - **Node.js** 18+
-- **Hermes Agent** with data under `~/.hermes/` (or set **`HERMES_HOME`** to match Hermes; Mission Control defaults to `path.join(os.homedir(), '.hermes')` in Node, same idea as Hermes). Run `hermes update` first.
+- **Hermes Agent** with data under `~/.hermes/` (or set **`HERMES_HOME`** to match Hermes; Command Hub defaults to `path.join(os.homedir(), '.hermes')` in Node, same idea as Hermes). Run `hermes update` first.
 
 ### Optional: Hindsight Memory
 
@@ -112,7 +112,7 @@ Hindsight requires:
 
 ## Memory Providers
 
-Mission Control supports multiple memory backends:
+Command Hub supports multiple memory backends:
 
 | Provider | Type | Features | Setup |
 |----------|------|----------|-------|
@@ -161,7 +161,7 @@ Each profile has its own SOUL.md, AGENTS.md, USER.md, MEMORY.md, and skill/tool 
 ## Development
 
 ```bash
-cd ~/mission-control
+cd ~/command-hub
 
 # Development (hot reload)
 npm run dev
@@ -181,7 +181,7 @@ npm test
 
 ## Configuration
 
-Mission Control reads from `~/.hermes/config.yaml` — it never writes to this file directly.
+Command Hub reads from `~/.hermes/config.yaml` — it never writes to this file directly.
 
 Key config sections:
 - `memory.provider` — Memory backend (hindsight, holographic, none)
@@ -195,7 +195,7 @@ Key config sections:
 
 ```bash
 # 1. Build (must pass before deploy)
-cd ~/mission-control && npm run build
+cd ~/command-hub && npm run build
 
 # 2. Kill existing server
 fuser -k 3000/tcp 2>/dev/null; sleep 2
@@ -252,7 +252,7 @@ Error logging: all catch blocks call `logApiError(route, context, error)`.
 
 ## Documentation
 
-Documentation for **Mission Control Simple** lives in the `docs/` directory:
+Documentation for **Command Hub Simple** lives in the `docs/` directory:
 
 | Document | Description |
 |----------|-------------|

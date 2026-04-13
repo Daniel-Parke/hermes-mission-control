@@ -1,19 +1,34 @@
 # Contributing
 
-This guide applies to **this repository** (Mission Control Simple / OSS). Run **`npm test`** for the Jest suite: it executes **only** tests under `src/__tests__/oss/` (Simple-edition surface). There is no commercial test project here.
+This guide applies to **this repository** (Command Hub Simple / OSS). Run **`npm test`** for the Jest suite: it executes **only** tests under `src/__tests__/oss/` (Simple-edition surface). There is no commercial test project here.
 
 ## Upstream source
 
-Mission Control is **released from a private monorepo** using an allowlisted export. Most day-to-day development and review may happen upstream; this public tree is the supported **OSS artifact**. Non-trivial changes merged here should be mirrored upstream so the next `publish:oss` export does not overwrite your work. Maintainers may restrict or decline community PRs that do not align with the product roadmap.
+Command Hub is **released from a private monorepo** using an allowlisted export. Most day-to-day development and review may happen upstream; this public tree is the supported **OSS artifact**. Non-trivial changes merged here should be mirrored upstream so the next `publish:oss` export does not overwrite your work. Maintainers may restrict or decline community PRs that do not align with the product roadmap.
 
 ## Getting Started
 
 ```bash
 # Clone and set up
-git clone https://github.com/Daniel-Parke/hermes-mission-control.git ~/mission-control
-cd ~/mission-control
+git clone https://github.com/Daniel-Parke/hermes-control-hub.git ~/command-hub
+cd ~/command-hub
 bash scripts/setup.sh    # npm install + build
 ```
+
+## Documentation map
+
+| Doc | Purpose |
+|-----|---------|
+| [ARCHITECTURE.md](ARCHITECTURE.md) | OSS tree layout, data flow, testing surface |
+| [API.md](API.md) | REST endpoints |
+| [DEPLOY.md](DEPLOY.md) | Env vars, TLS, Docker |
+| [HERMES_CONFIG_INTEGRATION.md](HERMES_CONFIG_INTEGRATION.md) | Align with Hermes + hermes-config |
+| [OSS_SCOPE.md](OSS_SCOPE.md) | What Simple edition includes / excludes |
+| [EDITION_COMPONENTS.md](EDITION_COMPONENTS.md) | When to use `*-oss` vs commercial-only routes |
+| [UPGRADE.md](UPGRADE.md) | Renames, `CH_*` vs `MC_*` env migration |
+| [BRANCHING.md](BRANCHING.md) | `dev` → `main`, branch protection |
+
+Maintainers: the private **agent-control-hub** monorepo holds `docs/RELEASE_PLAYBOOK.md`, `docs/NAMING_AND_ENV.md`, and root `ARCHITECTURE.md` (full stack + export pipeline).
 
 ---
 
@@ -199,7 +214,7 @@ Before submitting a PR:
 
 ```bash
 # 1. Build (must pass)
-cd ~/mission-control && npm run build
+cd ~/command-hub && npm run build
 
 # 2. Kill existing server
 fuser -k 3000/tcp 2>/dev/null; sleep 2

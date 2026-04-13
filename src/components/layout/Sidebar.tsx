@@ -47,6 +47,7 @@ import {
   CheckSquare,
   FolderOpen,
 } from "lucide-react";
+import { getPublicMcEdition } from "@agent-control-hub/config";
 import type { AccentColor } from "@/types/hermes";
 import { iconColorMap } from "@/lib/theme";
 
@@ -85,9 +86,7 @@ function isCommercialNavHref(href: string): boolean {
   return false;
 }
 
-const showCommercialNav =
-  typeof process.env.NEXT_PUBLIC_MC_EDITION === "string" &&
-  process.env.NEXT_PUBLIC_MC_EDITION.toLowerCase() === "commercial";
+const showCommercialNav = getPublicMcEdition() === "commercial";
 
 const mainSections: SidebarSection[] = [
   {
@@ -359,7 +358,7 @@ function VersionFooter({ collapsed }: { collapsed: boolean }) {
       <div className="rounded-lg bg-white/5 border border-white/5 p-2.5">
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-[9px] font-mono text-white/30 uppercase tracking-wider">
-            Mission Control
+            Command Hub
           </span>
           {version && !version.updateAvailable && (
             <span className="text-[9px] font-mono text-neon-green flex items-center gap-1">

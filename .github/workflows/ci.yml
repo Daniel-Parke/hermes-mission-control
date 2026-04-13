@@ -34,6 +34,8 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         env:
           CI: true
+          MC_EDITION: simple
+          NEXT_PUBLIC_MC_EDITION: simple
           PLAYWRIGHT_OSS_ONLY: "1"
 
   build-windows:

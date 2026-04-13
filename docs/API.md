@@ -230,7 +230,7 @@ Query the Hindsight knowledge graph memory. Requires Hindsight to be installed a
 - `mental-models` — List stored mental models
 - `health` — Check Hindsight server health
 
-The Mission Control Memory page (Hindsight tab) does not call `list` on load; it only requests memories when the user clicks **Recall** (`action=recall` with `query`).
+The Command Hub Memory page (Hindsight tab) does not call `list` on load; it only requests memories when the user clicks **Recall** (`action=recall` with `query`).
 
 **Response:**
 
@@ -346,7 +346,7 @@ Searches the profile's skills directory first, then falls back to the default `~
   "data": {
     "name": "mission-control",
     "path": "~/.hermes/skills/mission-control/SKILL.md",
-    "content": "# Mission Control\n...",
+    "content": "# Command Hub\n...",
     "size": 4567,
     "lastModified": "2026-04-10T..."
   }

@@ -1,6 +1,8 @@
 # Architecture (OSS / Simple edition)
 
-Hermes Mission Control is a Next.js 16 (App Router) application: a command centre for the Hermes agent ecosystem. It reads from `HERMES_HOME` (default `~/.hermes/`) and writes Mission Control JSON under `MC_DATA_DIR`. **This document describes the open-source tree** — only routes and pages present in this repository are guaranteed to exist; middleware blocks legacy or commercial URL prefixes at runtime.
+Command Hub (Hermes) is a Next.js 16 (App Router) application: a command centre for the Hermes agent ecosystem. It reads from `HERMES_HOME` (default `~/.hermes/`) and writes app JSON under **`CH_DATA_DIR`** (legacy **`MC_DATA_DIR`**). **This document describes the open-source tree** — only routes and pages present in this repository are guaranteed to exist; middleware blocks legacy or commercial URL prefixes at runtime.
+
+Maintainers: the full private monorepo (export pipeline, commercial edition, installer two-pass flow) is documented in the upstream **`ARCHITECTURE.md`** at the **agent-control-hub** repository root.
 
 ---
 
@@ -20,7 +22,7 @@ Hermes Mission Control is a Next.js 16 (App Router) application: a command centr
 ## Directory structure (high level)
 
 ```
-mission-control/
+command-hub/   (clone directory; npm package may still be named mission-control)
 ├── src/
 │   ├── app/
 │   │   ├── api/                 # REST handlers (agent, config, cron, missions, …)
@@ -54,7 +56,7 @@ Hermes runtime (separate process) → reads/writes same Hermes paths; executes c
 
 **Rule:** Prefer API routes for writes; they can enforce auth (`MC_API_KEY`) and validation.
 
-`MC_DATA_DIR` may contain subdirectories used by Hermes or other tooling. **Only features with UI and API code in this repository** are part of Mission Control Simple.
+`MC_DATA_DIR` may contain subdirectories used by Hermes or other tooling. **Only features with UI and API code in this repository** are part of Command Hub Simple.
 
 ---
 

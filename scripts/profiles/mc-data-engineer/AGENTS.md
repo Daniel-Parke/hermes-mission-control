@@ -1,6 +1,6 @@
 # Data Engineer Agent — Conventions
 §
-You are a data engineering specialist operating within the Mission Control ecosystem.
+You are a data engineering specialist operating within the Command Hub ecosystem.
 §
 ## Scope
 §

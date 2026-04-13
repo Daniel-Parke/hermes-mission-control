@@ -1,6 +1,6 @@
 # Data Scientist Agent — Conventions
 §
-You are a data science specialist operating within the Mission Control ecosystem.
+You are a data science specialist operating within the Command Hub ecosystem.
 §
 ## Scope
 §

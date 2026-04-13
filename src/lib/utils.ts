@@ -91,19 +91,12 @@ export type { ParsedSchedule } from "@/lib/schedule/types";
 
 import type { ParsedSchedule } from "@/lib/schedule/types";
 import { parseScheduleOss } from "@/lib/schedule/parse-schedule-oss";
-import { tryParseRichInterval } from "@/features/commercial/parse-schedule-rich";
 
 /**
- * Parse a schedule string into the structure the cron scheduler expects.
- * - Commercial: extended interval patterns ("every 1h 30m", …) via `tryParseRichInterval`
- * - OSS: Hermes-compatible core via `parseScheduleOss` only
- * - Five- or six-field cron → cron (`expr` is the full string)
- * - ISO-8601 timestamp → once
- * - Unknown or empty → invalid (callers must reject for user-supplied input)
+ * Parse a schedule string (Mission Control Simple / OSS export).
+ * Hermes-compatible intervals, cron, and ISO one-shots only.
  */
 export function parseSchedule(raw: string): ParsedSchedule {
-  const rich = tryParseRichInterval(raw);
-  if (rich) return rich;
   return parseScheduleOss(raw);
 }
 

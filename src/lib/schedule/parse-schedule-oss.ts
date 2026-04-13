@@ -1,6 +1,6 @@
 /**
- * Hermes-compatible schedule parsing for OSS (Mission Control Simple).
- * Extended interval patterns live in `src/features/commercial/parse-schedule-rich.ts` (private monorepo only).
+ * Hermes-compatible schedule parsing for Mission Control Simple (OSS surface).
+ * Rich multi-unit intervals (e.g. combined hours + minutes) are commercial-only in the private monorepo.
  */
 
 import type { ParsedSchedule } from "./types";

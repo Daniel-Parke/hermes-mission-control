@@ -62,7 +62,7 @@ Hermes runtime (separate process) → reads/writes same Hermes paths; executes c
 
 - **`src/lib/hermes.ts`** — `PATHS`, `HERMES_HOME`, config helpers.
 - **`src/lib/api-logger.ts`** — `logApiError`, safe JSON helpers.
-- **`src/lib/utils.ts`** — `parseSchedule`, `timeAgo`, etc.
+- **`src/lib/utils.ts`** — `parseSchedule` (Simple: delegates to `parseScheduleOss` only in the OSS artifact), `timeAgo`, etc.
 
 ---
 

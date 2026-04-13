@@ -6,7 +6,7 @@ This repository ships **Mission Control Simple**: a Next.js control plane for [H
 
 - Dashboard, missions (CRUD, dispatch), cron against Hermes `jobs.json`, sessions, memory (Hindsight / Holographic / None where supported), gateway, logs, config, skills, agent behaviour, personalities, Rec Room / Story Weaver (where present in this repo).
 - Shared packages: `@agent-control-hub/schema`, `@agent-control-hub/config` (vendored under `packages/`).
-- Schedule parsing for Hermes-style **simple** intervals (`every 15m`, `30m`, `every 2h`), cron strings, and ISO one-shots. Extended interval syntax beyond that is not part of this OSS build.
+- Schedule parsing for Hermes-style **simple** intervals (`every 15m`, `30m`, `every 2h`), cron strings, and ISO one-shots. In this export, `parseSchedule` in `utils.ts` delegates **only** to `parseScheduleOss` (no rich multi-unit intervals such as `every 1h 30m`, no `every 2d` / `every 1w` on the Simple surface).
 
 ## Not in this repository
 

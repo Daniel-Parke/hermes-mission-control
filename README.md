@@ -160,7 +160,7 @@ The dashboard will be available at `http://localhost:3000` (or `http://localhost
 
 
 
-If `npm run start` fails because port 3000 is taken, stop the old server first (often a previous `next start`). On Linux: `fuser -k 3000/tcp` or use another port, e.g. `PORT=3001 npm run start`. A small helper script is available at `scripts/restart-ch.sh` (stops listeners on `PORT`, then runs `npm run start`).
+If `npm run start` fails because port 3000 is taken, stop the old server first (often a previous `next start`). On Linux: `fuser -k 3000/tcp` or use another port, e.g. `PORT=3001 npm run start`.
 
 
 

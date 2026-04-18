@@ -936,7 +936,7 @@ async function handleThemes(body: Record<string, unknown>): Promise<NextResponse
 
   switch (subAction) {
     case "list": {
-      return NextResponse.json({ data: { prompts: loadThemes() } });
+      return NextResponse.json({ data: { themes: loadThemes() } });
     }
     case "create": {
       const prompts = loadThemes();

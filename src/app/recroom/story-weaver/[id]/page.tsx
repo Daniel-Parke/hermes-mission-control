@@ -234,6 +234,13 @@ export default function StoryReaderPage() {
   const theme = THEMES[settings.pageTheme] || THEMES.dark;
   const fontObj = FONTS.find(f => f.name === settings.fontFamily) || FONTS[0];
 
+  const handleContinueComplete = useCallback(() => {
+    setContinueModalOpen(false);
+    setContinueDirection("");
+    setContinuing(false);
+    setContinueDone(false);
+  }, []);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-dark-950 flex items-center justify-center">
@@ -260,13 +267,6 @@ export default function StoryReaderPage() {
   const prevChapter = currentChapter > 1 ? chapters[currentChapter - 2] : null;
   const nextChapter = nextComplete ? chapters[nextComplete.number - 1] : null;
   const anyFailed = chapters.some((c: Chapter) => c.status === "failed");
-  const handleContinueComplete = useCallback(() => {
-    setContinueModalOpen(false);
-    setContinueDirection("");
-    setContinuing(false);
-    setContinueDone(false);
-  }, []);
-
   const allComplete = chapters.length > 0 && chapters.every((c: Chapter) => c.status === "complete");
 
   return (

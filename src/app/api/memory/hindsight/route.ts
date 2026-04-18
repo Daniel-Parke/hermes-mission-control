@@ -80,6 +80,9 @@ export async function GET(request: NextRequest) {
       case "health":
         result = await runBridgeAsync("health", {}, 10000);
         break;
+      case "count":
+        result = await runBridgeAsync("count", { bank });
+        break;
       default:
         return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 });
     }

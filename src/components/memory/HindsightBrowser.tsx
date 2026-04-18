@@ -5,7 +5,7 @@
 
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   Brain, Search, Plus, Sparkles, List, FileText,
   Settings, RefreshCw, Clock, Tag,
@@ -31,6 +31,7 @@ type Tab = "memories" | "directives" | "mental-models";
 export default function HindsightBrowser() {
   const [memories, setMemories] = useState<Memory[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingInitial, setLoadingInitial] = useState(true);
   const [hasRecalled, setHasRecalled] = useState(false);
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<Tab>("memories");
@@ -52,6 +53,35 @@ export default function HindsightBrowser() {
       setHealth({ available: false, mode: "error" });
     }
   }, []);
+
+  // Load recent memories on mount
+  const loadRecentMemories = useCallback(async () => {
+    setLoadingInitial(true);
+    try {
+      const res = await fetch("/api/memory/hindsight?action=list&limit=50");
+      const body = await res.json();
+      const payload = body.data;
+      setMemories(payload?.memories || []);
+      if (payload && !payload.error) {
+        setHealth({
+          available: true,
+          mode: typeof payload.mode === "string" ? payload.mode : "ok",
+          message: undefined,
+        });
+      } else {
+        await fetchHealthOnly();
+      }
+    } catch {
+      await fetchHealthOnly();
+    } finally {
+      setLoadingInitial(false);
+    }
+  }, [fetchHealthOnly]);
+
+  useEffect(() => {
+    void loadRecentMemories();
+    void fetchHealthOnly();
+  }, [loadRecentMemories, fetchHealthOnly]);
 
   const applyRecallPayload = useCallback(
     async (
@@ -118,7 +148,11 @@ export default function HindsightBrowser() {
   };
 
   const handleRefreshMemories = () => {
-    void runRecall();
+    if (search.trim()) {
+      void runRecall();
+    } else {
+      void loadRecentMemories();
+    }
   };
 
   const handleReflect = async () => {
@@ -240,8 +274,8 @@ export default function HindsightBrowser() {
           size="sm"
           icon={RefreshCw}
           onClick={handleRefreshMemories}
-          disabled={!search.trim()}
-          title={!search.trim() ? "Enter a query to refresh recall results" : "Run the same search again"}
+          disabled={loading || loadingInitial}
+          title={search.trim() ? "Run the same search again" : "Reload recent memories"}
         >
           Refresh
         </Button>
@@ -250,19 +284,15 @@ export default function HindsightBrowser() {
       {/* Content */}
       {activeTab === "memories" && (
         <>
-          {loading ? (
-            <LoadingSpinner text="Recalling memories..." />
-          ) : !hasRecalled ? (
-            <EmptyState
-              icon={Brain}
-              title="Semantic recall"
-              description="Enter a query above and click Recall to search your Hindsight memory bank. Nothing is fetched until you do."
-            />
+          {loadingInitial || loading ? (
+            <LoadingSpinner text={loading ? "Searching memories..." : "Loading recent memories..."} />
           ) : memories.length === 0 ? (
             <EmptyState
               icon={Brain}
-              title="No memories found"
-              description="Try a different search query, or store new memories with Add Memory or the agent."
+              title={hasRecalled ? "No memories found" : "No memories yet"}
+              description={hasRecalled
+                ? "Try a different search query, or store new memories with Add Memory or the agent."
+                : "Store your first memory with Add Memory or ask the agent to retain one."}
             />
           ) : (
             <div className="space-y-3">

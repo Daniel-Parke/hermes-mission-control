@@ -561,7 +561,7 @@ export default function StoryReaderPage() {
               {chapters.map((ch, i) => (
                 <button key={i} onClick={() => ch.status === "complete" && handleChapterSelect(i + 1)}
                   className={`w-2.5 h-2.5 rounded-full transition-all flex-shrink-0 ${i + 1 === currentChapter ? "scale-125" : "opacity-40 hover:opacity-70"}`}
-                  style={{ background: ch.status === "complete" ? (i + 1 === currentChapter ? theme.accent : "#4a3f35") : ch.status === "failed" ? "#7f1d1d" : "#2a2520" }} />
+                  style={{ background: ch.status === "complete" ? (i + 1 === currentChapter ? theme.accent : "#4a3f35") : ch.status === "writing" ? "#3b82f6" : ch.status === "pending" ? "#f59e0b" : ch.status === "failed" ? "#7f1d1d" : "#2a2520" }} />
               ))}
             </div>
 

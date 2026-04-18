@@ -3,7 +3,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { BookOpen, ChevronLeft, Sparkles, Clock, CheckCircle2, Loader2, BookMarked } from "lucide-react";
+import { BookOpen, ChevronLeft, Sparkles, Clock, CheckCircle2, Loader2, BookMarked, Trash2 } from "lucide-react";
 import { timeAgo } from "@/lib/utils";
 
 interface StorySummary {
@@ -30,6 +30,17 @@ export default function LibraryPage() {
   }, []);
 
   useEffect(() => { fetchStories(); }, [fetchStories]);
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this story?")) return;
+    try {
+      await fetch("/api/stories", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "delete", storyId: id }),
+      });
+      setStories(prev => prev.filter(s => s.id !== id));
+    } catch {}
+  };
 
   const isComplete = (s: StorySummary) => {
     const total = s.chapters?.length || 0;
@@ -162,12 +173,18 @@ export default function LibraryPage() {
                           </div>
                         </div>
 
-                        <div className={`flex-shrink-0 text-[9px] font-mono px-2.5 py-1 rounded-full ${
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <button onClick={(e) => { e.stopPropagation(); handleDelete(story.id); }}
+                            className="p-1 text-white/10 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" title="Delete story">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                          <div className={`text-[9px] font-mono px-2.5 py-1 rounded-full ${
                           complete
                             ? "bg-green-500/10 text-neon-green"
                             : "bg-purple-500/10 text-neon-purple"
                         }`}>
                           {complete ? "Complete" : `${completeChapters}/${chapters.length}`}
+                        </div>
                         </div>
                       </div>
 

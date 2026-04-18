@@ -1004,7 +1004,7 @@ export default function HindsightBrowser() {
               onChange={(e) => setEditModelQuery(e.target.value)}
               className="w-full h-28 bg-dark-800 border border-white/10 rounded-lg p-3 text-sm text-white/80 resize-none focus:border-pink-500/50 focus:outline-none"
             />
-            <p className="text-xs text-white/30 mt-1">Changing the query won't re-generate content. Use Refresh to re-run reflect.</p>
+            <p className="text-xs text-white/30 mt-1">Changing the query won&apos;t re-generate content. Use Refresh to re-run reflect.</p>
           </div>
           <div>
             <label className="block text-sm text-white/50 mb-1">Tags (comma-separated)</label>

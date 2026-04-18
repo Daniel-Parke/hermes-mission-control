@@ -62,14 +62,16 @@ function Tags({ label, options, selected, onToggle, onAdd }: {
   );
 }
 
-function CharacterCard({ char, index, onUpdate, onRemove, expanded, onToggle }: {
+function CharacterCard({ char, index, onUpdate, onRemove, onSave, expanded, onToggle }: {
   char: StoryCharacter;
   index: number;
   onUpdate: (idx: number, field: keyof StoryCharacter, value: string) => void;
   onRemove: (idx: number) => void;
+  onSave: (char: StoryCharacter) => void;
   expanded: boolean;
   onToggle: (idx: number) => void;
 }) {
+  const canSave = char.name.trim() && char.description.trim();
   return (
     <div className="rounded-lg border border-white/5 bg-dark-800/30 overflow-hidden">
       <div className="flex items-center gap-2 p-3 cursor-pointer hover:bg-white/[0.02]" onClick={() => onToggle(index)}>
@@ -81,6 +83,12 @@ function CharacterCard({ char, index, onUpdate, onRemove, expanded, onToggle }: 
           className="bg-dark-700/50 border border-white/8 rounded px-2 py-1 text-[10px] text-white/70 outline-none font-mono w-28">
           {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
         </select>
+        {expanded && (
+          <button onClick={(e) => { e.stopPropagation(); onSave(char); }} disabled={!canSave}
+            className="p-1 text-white/20 hover:text-green-400 disabled:opacity-30" title="Save to library">
+            <Save className="w-3.5 h-3.5" />
+          </button>
+        )}
         <button onClick={(e) => { e.stopPropagation(); onRemove(index); }} className="p-1 text-white/20 hover:text-red-400">
           <X className="w-3.5 h-3.5" />
         </button>
@@ -265,6 +273,35 @@ function CreateStoryPage() {
   const removeCharacter = (idx: number) => {
     setCharacters(prev => prev.filter((_, i) => i !== idx));
     setExpandedChars(prev => { const next = { ...prev }; delete next[idx]; return next; });
+  };
+
+  const saveCharacter = async (char: StoryCharacter) => {
+    if (!char.name.trim() || !char.description.trim()) return;
+    try {
+      const res = await fetch("/api/stories", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "characters", subAction: "create",
+          name: char.name, role: char.role, description: char.description,
+          personality: char.personality ? [char.personality] : [],
+          appearance: char.appearance || "",
+          backstory: char.backstory || "",
+          speechPatterns: char.speechPatterns || "",
+          relationships: char.relationships || "",
+          tags: [],
+        }),
+      });
+      const d = await res.json();
+      if (d.data?.id) {
+        // Refresh saved characters list
+        const listRes = await fetch("/api/stories", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "characters", subAction: "list" }),
+        });
+        const listD = await listRes.json();
+        if (listD.data?.characters) setSavedCharacters(listD.data.characters);
+      }
+    } catch {}
   };
 
   const toggleCharExpand = (idx: number) => {
@@ -532,6 +569,7 @@ function CreateStoryPage() {
                   index={i}
                   onUpdate={updateCharacter}
                   onRemove={removeCharacter}
+                  onSave={saveCharacter}
                   expanded={!!expandedChars[i]}
                   onToggle={toggleCharExpand}
                 />

@@ -93,7 +93,8 @@ import {
   CheckSquare,
 
   FolderOpen,
-
+  User,
+  Users,
 } from "lucide-react";
 
 
@@ -241,11 +242,21 @@ const mainSections: SidebarSection[] = [
 
   {
 
-    label: "Agent",
+    label: "Agents",
 
     links: [
 
-      { icon: Brain, label: "Behaviour", href: "/agent/behaviour", color: "cyan" },
+      { icon: Users, label: "Agents", href: "/agent/agents", color: "purple" },
+
+    ],
+
+  },
+
+  {
+
+    label: "Operations",
+
+    links: [
 
       { icon: FileText, label: "Skills", href: "/skills", color: "green" },
 

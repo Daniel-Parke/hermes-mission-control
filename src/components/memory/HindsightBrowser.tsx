@@ -72,6 +72,12 @@ export default function HindsightBrowser() {
   const [newDirPriority, setNewDirPriority] = useState("0");
   const [newDirTags, setNewDirTags] = useState("");
   const [creatingDirective, setCreatingDirective] = useState(false);
+  const [editingDirective, setEditingDirective] = useState<Directive | null>(null);
+  const [editDirName, setEditDirName] = useState("");
+  const [editDirContent, setEditDirContent] = useState("");
+  const [editDirPriority, setEditDirPriority] = useState("0");
+  const [editDirTags, setEditDirTags] = useState("");
+  const [savingDirective, setSavingDirective] = useState(false);
 
   // Mental models state
   const [mentalModels, setMentalModels] = useState<MentalModel[]>([]);
@@ -82,6 +88,11 @@ export default function HindsightBrowser() {
   const [newModelTags, setNewModelTags] = useState("");
   const [creatingModel, setCreatingModel] = useState(false);
   const [refreshingModelId, setRefreshingModelId] = useState<string | null>(null);
+  const [editingModel, setEditingModel] = useState<MentalModel | null>(null);
+  const [editModelName, setEditModelName] = useState("");
+  const [editModelQuery, setEditModelQuery] = useState("");
+  const [editModelTags, setEditModelTags] = useState("");
+  const [savingModel, setSavingModel] = useState(false);
   const { showToast, toastElement } = useToast();
 
   const fetchHealthOnly = useCallback(async () => {

@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, Sparkles, Plus, X, Save, FolderOpen, Users, FileText } from "lucide-react";
 import { STORY_TEMPLATES } from "@/types/recroom";
-import type { StoryCharacter, CharacterSheet, SavedPrompt } from "@/types/recroom";
+import type { StoryCharacter, CharacterSheet, StoryTheme } from "@/types/recroom";
 import GenerateOverlay from "@/components/story-weaver/GenerateOverlay";
 
 const DEFAULT_GENRES = ["Sci-Fi", "Mystery", "Fantasy", "Romance", "Crime", "Horror", "Adventure", "Historical"];
@@ -95,9 +95,9 @@ function CreateStoryPage() {
 
   // Load from characters/prompts
   const [savedCharacters, setSavedCharacters] = useState<CharacterSheet[]>([]);
-  const [savedPrompts, setSavedPrompts] = useState<SavedPrompt[]>([]);
+  const [savedThemes, setStoryThemes] = useState<StoryTheme[]>([]);
   const [showCharPicker, setShowCharPicker] = useState(false);
-  const [showPromptPicker, setShowPromptPicker] = useState(false);
+  const [showThemePicker, setShowPromptPicker] = useState(false);
   const [hasDraft, setHasDraft] = useState(false);
 
   // Check for drafts and load saved data on mount
@@ -110,23 +110,23 @@ function CreateStoryPage() {
     }).then(r => r.json()).then(d => {
       if (d.data?.characters) setSavedCharacters(d.data.characters);
     }).catch(() => {});
-    // Load saved prompts
+    // Load saved themes
     fetch("/api/stories", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "prompts", subAction: "list" }),
+      body: JSON.stringify({ action: "themes", subAction: "list" }),
     }).then(r => r.json()).then(d => {
-      if (d.data?.prompts) setSavedPrompts(d.data.prompts);
+      if (d.data?.prompts) setStoryThemes(d.data.prompts);
     }).catch(() => {});
 
     // Load from URL params (from prompt page "Use Prompt")
-    const promptId = searchParams.get("promptId");
-    if (promptId) {
+    const themeId = searchParams.get("themeId");
+    if (themeId) {
       fetch("/api/stories", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "prompts", subAction: "list" }),
+        body: JSON.stringify({ action: "themes", subAction: "list" }),
       }).then(r => r.json()).then(d => {
-        const prompt = d.data?.prompts?.find((p: SavedPrompt) => p.id === promptId);
-        if (prompt) applySavedPrompt(prompt);
+        const prompt = d.data?.prompts?.find((p: StoryTheme) => p.id === themeId);
+        if (prompt) applyStoryTheme(prompt);
       }).catch(() => {});
     }
   }, [searchParams]);
@@ -172,7 +172,7 @@ function CreateStoryPage() {
     if (!titleManuallyEdited) setTitle(t.name);
   };
 
-  const applySavedPrompt = (p: SavedPrompt) => {
+  const applyStoryTheme = (p: StoryTheme) => {
     setTitle(p.name); setTitleManuallyEdited(true);
     setPremise(p.premise);
     if (p.genre.length) setGenres([...p.genre]);
@@ -279,19 +279,19 @@ function CreateStoryPage() {
       )}
 
       {/* Prompt Picker Modal */}
-      {showPromptPicker && (
+      {showThemePicker && (
         <div className="fixed inset-0 z-[60] bg-dark-950/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-dark-900 border border-green-500/20 rounded-xl w-full max-w-lg p-6 space-y-4 max-h-[80vh] overflow-y-auto">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-white">Load Story Prompt</h3>
+              <h3 className="text-sm font-semibold text-white">Load Theme</h3>
               <button onClick={() => setShowPromptPicker(false)} className="text-white/30 hover:text-white/60"><X className="w-4 h-4" /></button>
             </div>
-            {savedPrompts.length === 0 ? (
-              <p className="text-xs text-white/30">No saved prompts. Create some in the Prompts page first.</p>
+            {savedThemes.length === 0 ? (
+              <p className="text-xs text-white/30">No saved themes. Create some in the Prompts page first.</p>
             ) : (
               <div className="space-y-2">
-                {savedPrompts.map(p => (
-                  <button key={p.id} onClick={() => { applySavedPrompt(p); setShowPromptPicker(false); }}
+                {savedThemes.map(p => (
+                  <button key={p.id} onClick={() => { applyStoryTheme(p); setShowPromptPicker(false); }}
                     className="w-full text-left p-3 rounded-lg border border-white/5 hover:border-green-500/20 bg-white/[0.02] hover:bg-green-500/5 transition-all">
                     <div className="text-xs font-semibold text-white/80">{p.name}</div>
                     <div className="text-[10px] text-white/30 font-mono">{p.genre?.join(", ")} — {p.premise?.slice(0, 80)}</div>
@@ -317,10 +317,10 @@ function CreateStoryPage() {
               <FolderOpen className="w-3 h-3" /> Load Draft
             </button>
           )}
-          {savedPrompts.length > 0 && (
+          {savedThemes.length > 0 && (
             <button onClick={() => setShowPromptPicker(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-green-500/20 text-[10px] font-mono text-green-400 hover:bg-green-500/10">
-              <FileText className="w-3 h-3" /> Load Prompt
+              <FileText className="w-3 h-3" /> Load Theme
             </button>
           )}
         </div>

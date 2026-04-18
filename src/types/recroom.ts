@@ -69,9 +69,9 @@ export interface CharacterSheet {
   updatedAt: string;
 }
 
-// ── Saved Story Prompts (V2) ──────────────────────────────────
+// ── Story Themes (V3) ──────────────────────────────────
 
-export interface SavedPrompt {
+export interface StoryTheme {
   id: string;
   name: string;
   premise: string;

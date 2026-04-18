@@ -12,7 +12,7 @@ import type { StoryArc as StoryArcType, ChapterOutline } from "@/types/recroom";
 const SAVE_DIR = PATHS.stories;
 const GATEWAY_API = "http://127.0.0.1:8642/v1/chat/completions";
 const CHARACTERS_FILE = SAVE_DIR + "/characters.json";
-const PROMPTS_FILE = SAVE_DIR + "/prompts.json";
+const THEMES_FILE = SAVE_DIR + "/themes.json";
 
 function ensureDir() {
   if (!existsSync(SAVE_DIR)) mkdirSync(SAVE_DIR, { recursive: true });
@@ -152,7 +152,7 @@ export async function POST(request: Request) {
       case "update": return handleUpdate(body);
       case "delete": return handleDelete(body);
       case "characters": return handleCharacters(body);
-      case "prompts": return handlePrompts(body);
+      case "themes": return handleThemes(body);
       default: return NextResponse.json({ error: "Unknown action: " + action }, { status: 400 });
     }
   } catch (err) {
@@ -744,7 +744,7 @@ function getChapterCount(length: string): number {
 async function handleList(): Promise<NextResponse> {
   ensureDir();
   try {
-    const files = readdirSync(SAVE_DIR).filter(f => f.endsWith(".json") && f !== "characters.json" && f !== "prompts.json");
+    const files = readdirSync(SAVE_DIR).filter(f => f.endsWith(".json") && f !== "characters.json" && f !== "themes.json");
     const stories = files.map(f => {
       try {
         const s = JSON.parse(readFileSync(SAVE_DIR + "/" + f, "utf-8"));
@@ -896,7 +896,7 @@ async function handleCharacters(body: Record<string, unknown>): Promise<NextResp
 // Story Prompts CRUD
 // ═══════════════════════════════════════════════════════════════
 
-interface SavedPrompt {
+interface StoryTheme {
   id: string;
   name: string;
   premise: string;
@@ -909,30 +909,30 @@ interface SavedPrompt {
   updatedAt: string;
 }
 
-function loadPrompts(): SavedPrompt[] {
+function loadThemes(): StoryTheme[] {
   ensureDir();
-  if (!existsSync(PROMPTS_FILE)) return [];
+  if (!existsSync(THEMES_FILE)) return [];
   try {
-    return JSON.parse(readFileSync(PROMPTS_FILE, "utf-8"));
+    return JSON.parse(readFileSync(THEMES_FILE, "utf-8"));
   } catch { return []; }
 }
 
-function savePrompts(prompts: SavedPrompt[]): void {
+function saveThemes(prompts: StoryTheme[]): void {
   ensureDir();
-  writeFileSync(PROMPTS_FILE, JSON.stringify(prompts, null, 2));
+  writeFileSync(THEMES_FILE, JSON.stringify(prompts, null, 2));
 }
 
-async function handlePrompts(body: Record<string, unknown>): Promise<NextResponse> {
+async function handleThemes(body: Record<string, unknown>): Promise<NextResponse> {
   const subAction = body.subAction as string;
 
   switch (subAction) {
     case "list": {
-      return NextResponse.json({ data: { prompts: loadPrompts() } });
+      return NextResponse.json({ data: { prompts: loadThemes() } });
     }
     case "create": {
-      const prompts = loadPrompts();
+      const prompts = loadThemes();
       const now = new Date().toISOString();
-      const newPrompt: SavedPrompt = {
+      const newPrompt: StoryTheme = {
         id: "prompt_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 6),
         name: (body.name as string) || "Unnamed Prompt",
         premise: (body.premise as string) || "",
@@ -945,13 +945,13 @@ async function handlePrompts(body: Record<string, unknown>): Promise<NextRespons
         updatedAt: now,
       };
       prompts.push(newPrompt);
-      savePrompts(prompts);
+      saveThemes(prompts);
       return NextResponse.json({ data: newPrompt });
     }
     case "update": {
       const promptId = body.promptId as string;
       if (!promptId) return NextResponse.json({ error: "Missing promptId" }, { status: 400 });
-      const prompts = loadPrompts();
+      const prompts = loadThemes();
       const idx = prompts.findIndex(p => p.id === promptId);
       if (idx === -1) return NextResponse.json({ error: "Prompt not found" }, { status: 404 });
       const fields = ["name", "premise", "genre", "era", "setting", "mood", "notes"] as const;
@@ -959,16 +959,16 @@ async function handlePrompts(body: Record<string, unknown>): Promise<NextRespons
         if (body[f] !== undefined) (prompts[idx] as unknown as Record<string, unknown>)[f] = body[f];
       }
       prompts[idx].updatedAt = new Date().toISOString();
-      savePrompts(prompts);
+      saveThemes(prompts);
       return NextResponse.json({ data: prompts[idx] });
     }
     case "delete": {
       const promptId = body.promptId as string;
       if (!promptId) return NextResponse.json({ error: "Missing promptId" }, { status: 400 });
-      const prompts = loadPrompts();
+      const prompts = loadThemes();
       const filtered = prompts.filter(p => p.id !== promptId);
       if (filtered.length === prompts.length) return NextResponse.json({ error: "Prompt not found" }, { status: 404 });
-      savePrompts(filtered);
+      saveThemes(filtered);
       return NextResponse.json({ data: { deleted: true } });
     }
     default:

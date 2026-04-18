@@ -90,7 +90,7 @@ export default function StoryWeaverDashboard() {
             className="flex items-center justify-center gap-2 px-6 py-4 rounded-xl border border-white/10 text-sm font-mono text-white/50 hover:text-white/70 hover:bg-white/5 transition-all">
             <Users className="w-4 h-4" /> Characters
           </button>
-          <button onClick={() => router.push("/recroom/story-weaver/prompts")}
+          <button onClick={() => router.push("/recroom/story-weaver/themes")}
             className="flex items-center justify-center gap-2 px-6 py-4 rounded-xl border border-white/10 text-sm font-mono text-white/50 hover:text-white/70 hover:bg-white/5 transition-all">
             <FileText className="w-4 h-4" /> Prompts
           </button>

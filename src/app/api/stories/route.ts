@@ -14,6 +14,11 @@ const GATEWAY_API = "http://127.0.0.1:8642/v1/chat/completions";
 const CHARACTERS_FILE = SAVE_DIR + "/characters.json";
 const THEMES_FILE = SAVE_DIR + "/themes.json";
 
+const wordRanges: Record<string, string> = {
+  short: "800-1200", medium: "1200-1800", standard: "1800-2500",
+  long: "2500-3500", epic: "3500-5000", marathon: "5000+",
+};
+
 function ensureDir() {
   if (!existsSync(SAVE_DIR)) mkdirSync(SAVE_DIR, { recursive: true });
 }
@@ -105,10 +110,6 @@ function validateChapterOutput(raw: string): string {
 // ── Build Master Prompt ──────────────────────────────────────
 
 function buildMasterPrompt(config: Record<string, unknown>): string {
-  const wordRanges: Record<string, string> = {
-    short: "800-1200", medium: "1200-1800", standard: "1800-2500",
-    long: "2500-3500", epic: "3500-5000", marathon: "5000+",
-  };
   const wcRange = wordRanges[(config.wordCountRange as string) || "standard"] || "1800-2500";
 
   const characters = (config.characters as Array<Record<string, string>>) || [];
@@ -469,7 +470,7 @@ async function handleRetryChapter(body: Record<string, unknown>): Promise<NextRe
 // ── Edit Chapter (prompt-based rewrite with cascade) ─────────
 
 async function handleEditChapter(body: Record<string, unknown>): Promise<NextResponse> {
-  const { storyId, chapterNumber, editPrompt } = body;
+  const { storyId, chapterNumber, editPrompt, wordCountRange } = body;
   if (!storyId || !chapterNumber || !editPrompt) {
     return NextResponse.json({ error: "Missing storyId, chapterNumber, or editPrompt" }, { status: 400 });
   }
@@ -514,6 +515,8 @@ async function handleEditChapter(body: Record<string, unknown>): Promise<NextRes
     `Emotional Tone: ${chapterOutline.emotionalTone}`,
     "",
     "Rewrite this chapter incorporating the edit instructions. Return ONLY prose.",
+    "",
+    `Target length: ${(wordRanges as Record<string,string>)[(wordCountRange as string) || "standard"] || "1800-2500"} words.`,
   ].join("\n");
 
   // Mark chapter as writing
@@ -646,7 +649,7 @@ async function handleExtend(body: Record<string, unknown>): Promise<NextResponse
 // ── Continue Story (V2 — LLM-generated continuation) ────────
 
 async function handleContinue(body: Record<string, unknown>): Promise<NextResponse> {
-  const { storyId, direction, count } = body;
+  const { storyId, direction, count, wordCountRange } = body;
   if (!storyId || !direction) {
     return NextResponse.json({ error: "Missing storyId or direction" }, { status: 400 });
   }
@@ -684,7 +687,7 @@ The outlines must:
     "===CONTINUATION DIRECTION===",
     direction,
     "",
-    `Generate ${addCount} new chapter outlines starting from chapter ${startNum}.`,
+    `Generate ${addCount} new chapter outlines starting from chapter ${startNum}. Each chapter should be ${(wordRanges as Record<string,string>)[(wordCountRange as string) || "standard"] || "1800-2500"} words.`,
   ].join("\n");
 
   try {

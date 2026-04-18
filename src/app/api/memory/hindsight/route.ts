@@ -157,6 +157,18 @@ export async function POST(request: NextRequest) {
         result = await runBridgeAsync("update-directive", uArgs);
         break;
       }
+      case "update-model": {
+        const { id, name, query, tags } = body;
+        if (!id) {
+          return NextResponse.json({ error: "id is required" }, { status: 400 });
+        }
+        const umArgs: Record<string, string> = { bank, id };
+        if (name !== undefined) umArgs.name = name;
+        if (query !== undefined) umArgs.query = query;
+        if (tags !== undefined) umArgs.tags = Array.isArray(tags) ? tags.join(",") : tags;
+        result = await runBridgeAsync("update-model", umArgs);
+        break;
+      }
       case "refresh-model": {
         const { id } = body;
         if (!id) {

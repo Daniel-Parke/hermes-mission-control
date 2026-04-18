@@ -1,12 +1,18 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 
-import { readFileSync, existsSync, statSync, readdirSync } from "fs";
+import { readFileSync, existsSync, statSync, readdirSync, writeFileSync, mkdirSync, rmSync } from "fs";
 
 
 
 import { HERMES_HOME } from "@/lib/hermes";
 
 import { logApiError } from "@/lib/api-logger";
+
+import { resolveSafeProfileName } from "@/lib/path-security";
+
+import { requireMcApiKey, requireNotReadOnly } from "@/lib/api-auth";
+
+import { appendAuditLine } from "@/lib/audit-log";
 
 import type { ApiResponse } from "@/types/hermes";
 
@@ -316,10 +322,122 @@ export async function GET() {
   } catch (error) {
 
     logApiError("GET /api/agent/profiles", "listing profiles", error);
-
     return NextResponse.json({ error: "Failed to list profiles" }, { status: 500 });
-
   }
+}
 
+// ── POST — Create a new profile ──────────────────────────────────
+
+export async function POST(request: NextRequest) {
+  const ro = requireNotReadOnly();
+  if (ro) return ro;
+  const auth = requireMcApiKey(request);
+  if (auth) return auth;
+
+  try {
+    const body = await request.json();
+    const { name, description, cloneFrom } = body as {
+      name?: string;
+      description?: string;
+      cloneFrom?: string;
+    };
+
+    if (!name || typeof name !== "string" || name.trim().length < 2) {
+      return NextResponse.json(
+        { error: "Name is required (min 2 characters)" },
+        { status: 400 }
+      );
+    }
+
+    // Derive slug from name
+    const slug = name
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+
+    if (!slug || slug.length < 2) {
+      return NextResponse.json(
+        { error: "Profile name must contain alphanumeric characters" },
+        { status: 400 }
+      );
+    }
+
+    const prof = resolveSafeProfileName(slug);
+    if (!prof.ok) {
+      return NextResponse.json({ error: prof.error }, { status: 400 });
+    }
+
+    const profileDir = HERMES_HOME + "/profiles/" + slug;
+
+    if (existsSync(profileDir)) {
+      return NextResponse.json(
+        { error: `Profile "${slug}" already exists` },
+        { status: 409 }
+      );
+    }
+
+    // Create directory structure
+    mkdirSync(profileDir, { recursive: true });
+    mkdirSync(profileDir + "/memories", { recursive: true });
+    mkdirSync(profileDir + "/sessions", { recursive: true });
+    mkdirSync(profileDir + "/skills", { recursive: true });
+    mkdirSync(profileDir + "/skins", { recursive: true });
+    mkdirSync(profileDir + "/logs", { recursive: true });
+    mkdirSync(profileDir + "/plans", { recursive: true });
+    mkdirSync(profileDir + "/workspace", { recursive: true });
+    mkdirSync(profileDir + "/cron", { recursive: true });
+
+    // Copy config and .env from default or cloneFrom
+    const sourceDir =
+      cloneFrom && cloneFrom !== "default"
+        ? HERMES_HOME + "/profiles/" + cloneFrom
+        : HERMES_HOME;
+
+    if (existsSync(sourceDir + "/config.yaml")) {
+      writeFileSync(
+        profileDir + "/config.yaml",
+        readFileSync(sourceDir + "/config.yaml", "utf-8")
+      );
+    }
+    if (existsSync(sourceDir + "/.env")) {
+      writeFileSync(
+        profileDir + "/.env",
+        readFileSync(sourceDir + "/.env", "utf-8")
+      );
+    }
+    if (existsSync(sourceDir + "/auth.json")) {
+      writeFileSync(
+        profileDir + "/auth.json",
+        readFileSync(sourceDir + "/auth.json", "utf-8")
+      );
+    }
+
+    const soulContent = cloneFrom && cloneFrom !== "default" && existsSync(sourceDir + "/SOUL.md")
+      ? readFileSync(sourceDir + "/SOUL.md", "utf-8")
+      : "# " + name.trim() + "\n\nA specialist agent profile.\n";
+    writeFileSync(profileDir + "/SOUL.md", soulContent, "utf-8");
+
+    const agentsContent = cloneFrom && cloneFrom !== "default" && existsSync(sourceDir + "/AGENTS.md")
+      ? readFileSync(sourceDir + "/AGENTS.md", "utf-8")
+      : "# " + name.trim() + " — Development Guide\n\n";
+    writeFileSync(profileDir + "/AGENTS.md", agentsContent, "utf-8");
+
+    appendAuditLine({
+      action: "agent.profile.create",
+      resource: slug,
+      ok: true,
+    });
+
+    return NextResponse.json<ApiResponse<{ slug: string }>>({
+      data: { slug },
+    });
+  } catch (error) {
+    logApiError("POST /api/agent/profiles", "creating profile", error);
+    return NextResponse.json(
+      { error: "Failed to create profile" },
+      { status: 500 }
+    );
+  }
 }
 

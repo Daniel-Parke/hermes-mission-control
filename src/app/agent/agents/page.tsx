@@ -13,6 +13,7 @@ import {
 import PageHeader from "@/components/layout/PageHeader";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
+import Modal from "@/components/ui/Modal";
 import { LoadingSpinner, EmptyState } from "@/components/ui/LoadingSpinner";
 import { useToast } from "@/components/ui/Toast";
 import type { AgentProfile, ProfileFile } from "@/types/hermes";
@@ -47,6 +48,18 @@ export default function BehaviourPage() {
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [previewMode, setPreviewMode] = useState(false);
   const [savingPersonality, setSavingPersonality] = useState<string | null>(null);
+
+  // Create modal state
+  const [showCreate, setShowCreate] = useState(false);
+  const [createName, setCreateName] = useState("");
+  const [createDescription, setCreateDescription] = useState("");
+  const [createCloneFrom, setCreateCloneFrom] = useState("default");
+  const [creating, setCreating] = useState(false);
+
+  // Delete confirmation state
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
   const { showToast, toastElement } = useToast();
 
   const loadProfiles = useCallback(async () => {
@@ -63,6 +76,60 @@ export default function BehaviourPage() {
   }, [showToast]);
 
   useEffect(() => { loadProfiles(); }, [loadProfiles]);
+
+  const handleCreate = async () => {
+    if (creating || !createName.trim()) return;
+    setCreating(true);
+    try {
+      const res = await fetch("/api/agent/profiles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: createName.trim(),
+          description: createDescription.trim(),
+          cloneFrom: createCloneFrom,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.error || "Failed to create profile", "error");
+        return;
+      }
+      showToast(`Profile "${createName.trim()}" created`, "success");
+      setShowCreate(false);
+      setCreateName("");
+      setCreateDescription("");
+      setCreateCloneFrom("default");
+      loadProfiles();
+    } catch {
+      showToast("Failed to create profile", "error");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (deleting || !deleteTarget) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/agent/profiles/${deleteTarget}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        showToast(data.error || "Failed to delete profile", "error");
+        return;
+      }
+      showToast("Profile deleted", "success");
+      setDeleteTarget(null);
+      setExpandedProfile(null);
+      loadProfiles();
+    } catch {
+      showToast("Failed to delete profile", "error");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const openFile = async (profileId: string, file: ProfileFile) => {
     if (!file.exists) {
@@ -157,6 +224,16 @@ export default function BehaviourPage() {
         title="Agents"
         subtitle={`${profiles.length} profiles configured`}
         color="purple"
+        actions={
+          <Button
+            variant="primary"
+            color="purple"
+            icon={Plus}
+            onClick={() => setShowCreate(true)}
+          >
+            New Agent
+          </Button>
+        }
       />
 
       <div className="px-6 py-6">
@@ -272,7 +349,19 @@ export default function BehaviourPage() {
                     </div>
 
                     {/* Close button */}
-                    <div className="mt-4 pt-4 border-t border-white/10 flex justify-end">
+                    <div className="mt-4 pt-4 border-t border-white/10 flex justify-between">
+                      {!profile.isDefault && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          color="red"
+                          icon={Trash2}
+                          onClick={() => setDeleteTarget(profile.id)}
+                        >
+                          Delete
+                        </Button>
+                      )}
+                      <div className="flex-1" />
                       <Button
                         variant="ghost"
                         size="sm"

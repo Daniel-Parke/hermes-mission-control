@@ -8,7 +8,7 @@
 import { useState, useCallback, useEffect } from "react";
 import {
   Brain, Search, Plus, Sparkles, List, FileText,
-  Settings, RefreshCw, Clock, Tag, Trash2, ToggleLeft, ToggleRight, Zap,
+  Settings, RefreshCw, Clock, Tag, Trash2, ToggleLeft, ToggleRight, Zap, Pencil,
 } from "lucide-react";
 import { SearchInput } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
@@ -410,6 +410,77 @@ export default function HindsightBrowser() {
     }
   };
 
+  // ── Edit handlers ──
+  const openEditDirective = (d: Directive) => {
+    setEditingDirective(d);
+    setEditDirName(d.name);
+    setEditDirContent(d.content);
+    setEditDirPriority(String(d.priority));
+    setEditDirTags(d.tags.join(", "));
+  };
+
+  const handleSaveDirective = async () => {
+    if (!editingDirective || !editDirName.trim() || !editDirContent.trim()) return;
+    setSavingDirective(true);
+    try {
+      const tags = editDirTags.split(",").map(t => t.trim()).filter(Boolean);
+      const res = await fetch("/api/memory/hindsight", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "update-directive",
+          id: editingDirective.id,
+          name: editDirName,
+          content: editDirContent,
+          priority: parseInt(editDirPriority) || 0,
+          tags,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      showToast("Directive updated", "success");
+      setEditingDirective(null);
+      await loadDirectives();
+    } catch {
+      showToast("Failed to update directive", "error");
+    } finally {
+      setSavingDirective(false);
+    }
+  };
+
+  const openEditModel = (m: MentalModel) => {
+    setEditingModel(m);
+    setEditModelName(m.name);
+    setEditModelQuery(m.source_query);
+    setEditModelTags(m.tags.join(", "));
+  };
+
+  const handleSaveModel = async () => {
+    if (!editingModel || !editModelName.trim()) return;
+    setSavingModel(true);
+    try {
+      const tags = editModelTags.split(",").map(t => t.trim()).filter(Boolean);
+      const res = await fetch("/api/memory/hindsight", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "update-model",
+          id: editingModel.id,
+          name: editModelName,
+          query: editModelQuery || undefined,
+          tags,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      showToast("Mental model updated", "success");
+      setEditingModel(null);
+      await loadModels();
+    } catch {
+      showToast("Failed to update mental model", "error");
+    } finally {
+      setSavingModel(false);
+    }
+  };
+
   return (
     <div>
       {toastElement}
@@ -599,6 +670,13 @@ export default function HindsightBrowser() {
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <button
+                        onClick={() => openEditDirective(d)}
+                        className="p-1.5 rounded-lg hover:bg-white/5 text-white/40 hover:text-white/70 transition-colors"
+                        title="Edit"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
                         onClick={() => handleToggleDirective(d)}
                         className="p-1.5 rounded-lg hover:bg-white/5 text-white/40 hover:text-white/70 transition-colors"
                         title={d.is_active ? "Deactivate" : "Activate"}
@@ -677,6 +755,13 @@ export default function HindsightBrowser() {
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        onClick={() => openEditModel(m)}
+                        className="p-1.5 rounded-lg hover:bg-white/5 text-white/40 hover:text-white/70 transition-colors"
+                        title="Edit"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
                       <button
                         onClick={() => handleRefreshModel(m.id)}
                         disabled={refreshingModelId === m.id}
@@ -840,6 +925,106 @@ export default function HindsightBrowser() {
               disabled={creatingModel || !newModelName.trim() || !newModelQuery.trim()}
             >
               {creatingModel ? "Creating..." : "Create Mental Model"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Edit Directive Modal */}
+      <Modal open={!!editingDirective} onClose={() => setEditingDirective(null)} title="Edit Directive" size="md">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm text-white/50 mb-1">Directive Name</label>
+            <input
+              type="text"
+              value={editDirName}
+              onChange={(e) => setEditDirName(e.target.value)}
+              className="w-full bg-dark-800 border border-white/10 rounded-lg px-3 py-2 text-sm text-white/80 focus:border-pink-500/50 focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-white/50 mb-1">Directive Content</label>
+            <textarea
+              value={editDirContent}
+              onChange={(e) => setEditDirContent(e.target.value)}
+              className="w-full h-28 bg-dark-800 border border-white/10 rounded-lg p-3 text-sm text-white/80 resize-none focus:border-pink-500/50 focus:outline-none"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm text-white/50 mb-1">Priority</label>
+              <input
+                type="number"
+                value={editDirPriority}
+                onChange={(e) => setEditDirPriority(e.target.value)}
+                className="w-full bg-dark-800 border border-white/10 rounded-lg px-3 py-2 text-sm text-white/80 focus:border-pink-500/50 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-white/50 mb-1">Tags (comma-separated)</label>
+              <input
+                type="text"
+                value={editDirTags}
+                onChange={(e) => setEditDirTags(e.target.value)}
+                className="w-full bg-dark-800 border border-white/10 rounded-lg px-3 py-2 text-sm text-white/80 focus:border-pink-500/50 focus:outline-none"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setEditingDirective(null)}>Cancel</Button>
+            <Button
+              variant="primary"
+              color="pink"
+              size="sm"
+              onClick={handleSaveDirective}
+              disabled={savingDirective || !editDirName.trim() || !editDirContent.trim()}
+            >
+              {savingDirective ? "Saving..." : "Save Changes"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Edit Mental Model Modal */}
+      <Modal open={!!editingModel} onClose={() => setEditingModel(null)} title="Edit Mental Model" size="md">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm text-white/50 mb-1">Model Name</label>
+            <input
+              type="text"
+              value={editModelName}
+              onChange={(e) => setEditModelName(e.target.value)}
+              className="w-full bg-dark-800 border border-white/10 rounded-lg px-3 py-2 text-sm text-white/80 focus:border-pink-500/50 focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-white/50 mb-1">Source Query</label>
+            <textarea
+              value={editModelQuery}
+              onChange={(e) => setEditModelQuery(e.target.value)}
+              className="w-full h-28 bg-dark-800 border border-white/10 rounded-lg p-3 text-sm text-white/80 resize-none focus:border-pink-500/50 focus:outline-none"
+            />
+            <p className="text-xs text-white/30 mt-1">Changing the query won't re-generate content. Use Refresh to re-run reflect.</p>
+          </div>
+          <div>
+            <label className="block text-sm text-white/50 mb-1">Tags (comma-separated)</label>
+            <input
+              type="text"
+              value={editModelTags}
+              onChange={(e) => setEditModelTags(e.target.value)}
+              className="w-full bg-dark-800 border border-white/10 rounded-lg px-3 py-2 text-sm text-white/80 focus:border-pink-500/50 focus:outline-none"
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setEditingModel(null)}>Cancel</Button>
+            <Button
+              variant="primary"
+              color="pink"
+              size="sm"
+              onClick={handleSaveModel}
+              disabled={savingModel || !editModelName.trim()}
+            >
+              {savingModel ? "Saving..." : "Save Changes"}
             </Button>
           </div>
         </div>

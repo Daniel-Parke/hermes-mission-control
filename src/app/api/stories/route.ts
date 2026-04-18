@@ -112,9 +112,15 @@ function buildMasterPrompt(config: Record<string, unknown>): string {
   const wcRange = wordRanges[(config.wordCountRange as string) || "standard"] || "1800-2500";
 
   const characters = (config.characters as Array<Record<string, string>>) || [];
-  const charProfiles = characters.map(c =>
-    `- ${c.name} (${c.role}): ${c.description}`
-  ).join("\n");
+  const charProfiles = characters.map(c => {
+    const parts = [`- ${c.name} (${c.role}): ${c.description}`];
+    if (c.personality) parts.push(`  Personality: ${c.personality}`);
+    if (c.appearance) parts.push(`  Appearance: ${c.appearance}`);
+    if (c.backstory) parts.push(`  Backstory: ${c.backstory}`);
+    if (c.speechPatterns) parts.push(`  Speech Patterns: ${c.speechPatterns}`);
+    if (c.relationships) parts.push(`  Relationships: ${c.relationships}`);
+    return parts.join('\n');
+  }).join('\n\n');
 
   return [
     `STORY CONFIGURATION:`,

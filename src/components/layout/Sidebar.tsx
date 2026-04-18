@@ -223,8 +223,6 @@ const mainSections: SidebarSection[] = [
 
         subLinks: [
 
-          { label: "Reading Desk", href: "/recroom/story-weaver/reading-desk" },
-
           { label: "Library", href: "/recroom/story-weaver/library" },
 
           { label: "Create", href: "/recroom/story-weaver/create" },

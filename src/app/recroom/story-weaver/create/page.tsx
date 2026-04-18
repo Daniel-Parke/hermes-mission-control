@@ -1,8 +1,8 @@
-// Story Weaver — Create Story V2 (drafts, load from characters/prompts)
+// Story Weaver — Create Story V3 (creative workshop: themes, characters, story details)
 "use client";
 import { useState, useCallback, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronLeft, Sparkles, Plus, X, Save, FolderOpen, Users, FileText } from "lucide-react";
+import { ChevronLeft, ChevronDown, ChevronUp, Sparkles, Plus, X, Save, FolderOpen, Users, Trash2 } from "lucide-react";
 import { STORY_TEMPLATES } from "@/types/recroom";
 import type { StoryCharacter, CharacterSheet, StoryTheme } from "@/types/recroom";
 import GenerateOverlay from "@/components/story-weaver/GenerateOverlay";
@@ -12,6 +12,9 @@ const DEFAULT_ERAS = ["Ancient", "Medieval", "Modern", "Near Future", "Far Futur
 const DEFAULT_MOODS = ["Tense", "Wonder", "Humorous", "Dark", "Hopeful", "Melancholy", "Suspenseful", "Whimsical"];
 const DEFAULT_SETTINGS = ["Space Station", "Medieval Castle", "Modern City", "Underwater", "Forest", "Desert", "Island", "Train"];
 const DRAFT_KEY = "story-weaver-draft";
+const ROLES = ["protagonist", "ally", "antagonist", "supporting", "mystery"];
+
+const EMPTY_CHARACTER: StoryCharacter = { name: "", role: "supporting", description: "" };
 
 interface Draft {
   title: string;
@@ -40,21 +43,78 @@ function Tags({ label, options, selected, onToggle, onAdd }: {
         {options.map((t) => (
           <button key={t} onClick={() => onToggle(t)}
             className={`px-2.5 py-1 rounded-md text-[10px] font-mono border transition-all ${
-              selected.includes(t) ? "border-purple-500/40 bg-purple-500/15 text-neon-purple" : "border-white/8 text-white/30 hover:text-white/50"
+              selected.includes(t) ? "border-green-500/40 bg-green-500/15 text-green-400" : "border-white/8 text-white/30 hover:text-white/50"
             }`}>{t}</button>
         ))}
         {adding ? (
           <div className="flex items-center gap-1">
             <input value={val} onChange={(e) => setVal(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && val.trim()) { onAdd(val.trim()); setVal(""); setAdding(false); } if (e.key === "Escape") setAdding(false); }}
-              className="w-24 bg-dark-800/50 border border-purple-500/30 rounded px-2 py-1 text-[10px] font-mono text-white outline-none" autoFocus placeholder="Custom..." />
-            <button onClick={() => { if (val.trim()) { onAdd(val.trim()); setVal(""); setAdding(false); } }} className="p-0.5 text-neon-purple"><Plus className="w-3 h-3" /></button>
+              className="w-24 bg-dark-800/50 border border-green-500/30 rounded px-2 py-1 text-[10px] font-mono text-white outline-none" autoFocus placeholder="Custom..." />
+            <button onClick={() => { if (val.trim()) { onAdd(val.trim()); setVal(""); setAdding(false); } }} className="p-0.5 text-green-400"><Plus className="w-3 h-3" /></button>
             <button onClick={() => setAdding(false)} className="p-0.5 text-white/30"><X className="w-3 h-3" /></button>
           </div>
         ) : (
           <button onClick={() => setAdding(true)} className="px-2 py-1 rounded-md text-[10px] font-mono border border-dashed border-white/10 text-white/20 hover:text-white/40">+ Add</button>
         )}
       </div>
+    </div>
+  );
+}
+
+function CharacterCard({ char, index, onUpdate, onRemove, expanded, onToggle }: {
+  char: StoryCharacter;
+  index: number;
+  onUpdate: (idx: number, field: keyof StoryCharacter, value: string) => void;
+  onRemove: (idx: number) => void;
+  expanded: boolean;
+  onToggle: (idx: number) => void;
+}) {
+  return (
+    <div className="rounded-lg border border-white/5 bg-dark-800/30 overflow-hidden">
+      <div className="flex items-center gap-2 p-3 cursor-pointer hover:bg-white/[0.02]" onClick={() => onToggle(index)}>
+        <input value={char.name} onChange={(e) => { e.stopPropagation(); onUpdate(index, "name", e.target.value); }}
+          onClick={(e) => e.stopPropagation()} placeholder="Character name"
+          className="flex-1 bg-transparent text-sm text-white placeholder-white/20 outline-none font-semibold" />
+        <select value={char.role} onChange={(e) => { e.stopPropagation(); onUpdate(index, "role", e.target.value); }}
+          onClick={(e) => e.stopPropagation()}
+          className="bg-dark-700/50 border border-white/8 rounded px-2 py-1 text-[10px] text-white/70 outline-none font-mono w-28">
+          {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+        </select>
+        <button onClick={(e) => { e.stopPropagation(); onRemove(index); }} className="p-1 text-white/20 hover:text-red-400">
+          <X className="w-3.5 h-3.5" />
+        </button>
+        {expanded ? <ChevronUp className="w-4 h-4 text-white/30" /> : <ChevronDown className="w-4 h-4 text-white/30" />}
+      </div>
+      <div className="px-3 pb-2 -mt-1">
+        <input value={char.description} onChange={(e) => onUpdate(index, "description", e.target.value)}
+          placeholder="Short description..."
+          className="w-full bg-transparent text-xs text-white/50 placeholder-white/15 outline-none" />
+      </div>
+      {expanded && (
+        <div className="px-3 pb-3 space-y-2 border-t border-white/5 pt-3">
+          {[
+            { field: "personality" as const, label: "Personality Traits", ph: "e.g., Pragmatic, Protective, Stubborn" },
+            { field: "appearance" as const, label: "Appearance", ph: "Physical description..." },
+            { field: "backstory" as const, label: "Backstory", ph: "Their history, motivations...", textarea: true },
+            { field: "speechPatterns" as const, label: "Speech Patterns", ph: "How they talk — formal, slang, accent..." },
+            { field: "relationships" as const, label: "Relationships", ph: "Connections to other characters..." },
+          ].map(({ field, label, ph, textarea }) => (
+            <div key={field}>
+              <label className="text-[9px] font-mono text-white/20 uppercase block mb-1">{label}</label>
+              {textarea ? (
+                <textarea value={char[field] || ""} onChange={(e) => onUpdate(index, field, e.target.value)}
+                  rows={2} placeholder={ph}
+                  className="w-full bg-dark-700/30 border border-white/5 rounded px-2 py-1.5 text-xs text-white/60 placeholder-white/15 outline-none font-mono resize-none" />
+              ) : (
+                <input value={char[field] || ""} onChange={(e) => onUpdate(index, field, e.target.value)}
+                  placeholder={ph}
+                  className="w-full bg-dark-700/30 border border-white/5 rounded px-2 py-1.5 text-xs text-white/60 placeholder-white/15 outline-none font-mono" />
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -87,57 +147,56 @@ function CreateStoryPage() {
   const [length, setLength] = useState<string>(STORY_TEMPLATES[0].length);
   const [wordCountRange, setWordCountRange] = useState("standard");
   const [characters, setCharacters] = useState<StoryCharacter[]>([...STORY_TEMPLATES[0].characters]);
-  const [selectedTemplate, setSelectedTemplate] = useState("cosmic-voyager");
+  const [selectedTheme, setSelectedTheme] = useState("cosmic-voyager");
+  const [expandedChars, setExpandedChars] = useState<Record<number, boolean>>({});
   const [genreOpts, setGenreOpts] = useState([...DEFAULT_GENRES]);
   const [eraOpts, setEraOpts] = useState([...DEFAULT_ERAS]);
   const [moodOpts, setMoodOpts] = useState([...DEFAULT_MOODS]);
   const [settingOpts, setSettingOpts] = useState([...DEFAULT_SETTINGS]);
 
-  // Load from characters/prompts
+  // Saved data
   const [savedCharacters, setSavedCharacters] = useState<CharacterSheet[]>([]);
-  const [savedThemes, setStoryThemes] = useState<StoryTheme[]>([]);
+  const [savedThemes, setSavedThemes] = useState<StoryTheme[]>([]);
   const [showCharPicker, setShowCharPicker] = useState(false);
-  const [showThemePicker, setShowPromptPicker] = useState(false);
   const [hasDraft, setHasDraft] = useState(false);
 
-  // Check for drafts and load saved data on mount
+  // Save as theme
+  const [showSaveTheme, setShowSaveTheme] = useState(false);
+  const [newThemeName, setNewThemeName] = useState("");
+
+  // Load saved data on mount
   useEffect(() => {
     setHasDraft(!!localStorage.getItem(DRAFT_KEY));
-    // Load saved characters
     fetch("/api/stories", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "characters", subAction: "list" }),
     }).then(r => r.json()).then(d => {
       if (d.data?.characters) setSavedCharacters(d.data.characters);
     }).catch(() => {});
-    // Load saved themes
     fetch("/api/stories", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "themes", subAction: "list" }),
     }).then(r => r.json()).then(d => {
-      if (d.data?.prompts) setStoryThemes(d.data.prompts);
+      if (d.data?.themes) setSavedThemes(d.data.themes);
     }).catch(() => {});
 
-    // Load from URL params (from prompt page "Use Prompt")
+    // Load from URL params (from themes page "Use Theme")
     const themeId = searchParams.get("themeId");
     if (themeId) {
       fetch("/api/stories", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "themes", subAction: "list" }),
       }).then(r => r.json()).then(d => {
-        const prompt = d.data?.prompts?.find((p: StoryTheme) => p.id === themeId);
-        if (prompt) applyStoryTheme(prompt);
+        const theme = d.data?.themes?.find((t: StoryTheme) => t.id === themeId);
+        if (theme) applyTheme(theme);
       }).catch(() => {});
     }
   }, [searchParams]);
 
-  // Auto-save draft to localStorage
+  // Auto-save draft
   useEffect(() => {
     if (generating) return;
-    const draft: Draft = {
-      title, premise, genres, era, moods, setting, pov, length, wordCountRange, characters,
-      savedAt: new Date().toISOString(),
-    };
+    const draft: Draft = { title, premise, genres, era, moods, setting, pov, length, wordCountRange, characters, savedAt: new Date().toISOString() };
     localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
   }, [title, premise, genres, era, moods, setting, pov, length, wordCountRange, characters, generating]);
 
@@ -152,45 +211,100 @@ function CreateStoryPage() {
       setSetting(d.setting); setPov(d.pov);
       setLength(d.length); setWordCountRange(d.wordCountRange || "standard");
       setCharacters(d.characters);
-      setSelectedTemplate("");
+      setSelectedTheme("");
       setHasDraft(false);
     } catch {}
   };
 
-  const clearDraft = () => {
-    localStorage.removeItem(DRAFT_KEY);
-    setHasDraft(false);
-  };
-
+  // Template: sets everything (theme + characters + params)
   const applyTemplate = (id: string) => {
-    setSelectedTemplate(id);
+    setSelectedTheme(id);
     const t = STORY_TEMPLATES.find((tmpl) => tmpl.id === id);
     if (!t) return;
     setPremise(t.premise); setGenres([...t.genre]); setEra(t.era); setMoods([...t.moods]);
-    setSetting(t.setting); setPov(t.pov); setLength(t.length); setCharacters([...t.characters]);
+    setSetting(t.setting); setPov(t.pov); setLength(t.length);
+    setCharacters(t.characters.map(c => ({ ...c })));
     setWordCountRange("standard");
+    setExpandedChars({});
     if (!titleManuallyEdited) setTitle(t.name);
   };
 
-  const applyStoryTheme = (p: StoryTheme) => {
-    setTitle(p.name); setTitleManuallyEdited(true);
-    setPremise(p.premise);
-    if (p.genre.length) setGenres([...p.genre]);
-    if (p.era) setEra(p.era);
-    if (p.setting) setSetting(p.setting);
-    if (p.mood.length) setMoods([...p.mood]);
-    setSelectedTemplate("");
+  // Theme: sets only premise + tags (NOT characters, NOT params)
+  const applyTheme = (theme: StoryTheme) => {
+    setPremise(theme.premise);
+    if (theme.genre?.length) setGenres([...theme.genre]);
+    if (theme.era) setEra(theme.era);
+    if (theme.setting) setSetting(theme.setting);
+    if (theme.mood?.length) setMoods([...theme.mood]);
+    setSelectedTheme(theme.id);
   };
 
   const importCharacter = (cs: CharacterSheet) => {
-    // Don't add duplicates
     if (characters.some(c => c.name === cs.name)) return;
-    setCharacters(prev => [...prev, {
+    const newChar: StoryCharacter & Record<string, unknown> = {
       name: cs.name,
       role: (cs.role as StoryCharacter["role"]) || "supporting",
       description: cs.description || cs.backstory?.slice(0, 100) || "",
-    }]);
+      personality: (cs.personality as string[])?.join(", ") || "",
+      appearance: cs.appearance || "",
+      backstory: cs.backstory || "",
+      speechPatterns: cs.speechPatterns || "",
+      relationships: cs.relationships || "",
+    };
+    setCharacters(prev => [...prev, newChar as StoryCharacter]);
     setShowCharPicker(false);
+  };
+
+  const updateCharacter = (idx: number, field: string, value: string) => {
+    setCharacters(prev => prev.map((c, i) => {
+      if (i !== idx) return c;
+      return { ...(c as unknown as Record<string, unknown>), [field]: value } as unknown as StoryCharacter;
+    }));
+  };
+
+  const removeCharacter = (idx: number) => {
+    setCharacters(prev => prev.filter((_, i) => i !== idx));
+    setExpandedChars(prev => { const next = { ...prev }; delete next[idx]; return next; });
+  };
+
+  const toggleCharExpand = (idx: number) => {
+    setExpandedChars(prev => ({ ...prev, [idx]: !prev[idx] }));
+  };
+
+  const saveAsTheme = async () => {
+    if (!newThemeName.trim() || !premise.trim()) return;
+    try {
+      const res = await fetch("/api/stories", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "themes", subAction: "create",
+          name: newThemeName.trim(), premise, genre: genres, era, setting, mood: moods,
+          notes: `Characters: ${characters.map(c => c.name).filter(Boolean).join(", ")}`,
+        }),
+      });
+      const d = await res.json();
+      if (d.data?.themes) setSavedThemes(d.data.themes);
+      setShowSaveTheme(false);
+      setNewThemeName("");
+    } catch {}
+  };
+
+  const deleteTheme = async (id: string) => {
+    try {
+      await fetch("/api/stories", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "themes", subAction: "delete", promptId: id }),
+      });
+      setSavedThemes(prev => prev.filter(t => t.id !== id));
+      if (selectedTheme === id) setSelectedTheme("");
+    } catch {}
+  };
+
+  const clearAllInputs = () => {
+    setSelectedTheme(""); setTitle(""); setTitleManuallyEdited(false);
+    setPremise(""); setGenres([]); setEra(""); setMoods([]); setSetting("");
+    setCharacters([]); setPov("first"); setLength("medium");
+    setWordCountRange("standard"); setExpandedChars({});
   };
 
   const toggle = (list: string[], set: (v: string[]) => void, tag: string) =>
@@ -218,7 +332,6 @@ function CreateStoryPage() {
       const d = await res.json();
       if (d.error) throw new Error(d.error);
 
-      // Clear draft on success
       localStorage.removeItem(DRAFT_KEY);
       setHasDraft(false);
       setGenStoryId(d.data.id);
@@ -230,14 +343,11 @@ function CreateStoryPage() {
   }, [title, premise, genres, era, setting, moods, pov, length, characters, wordCountRange]);
 
   const handleGenComplete = useCallback(() => {
-    if (genStoryId) {
-      router.push("/recroom/story-weaver/" + genStoryId);
-    }
+    if (genStoryId) router.push("/recroom/story-weaver/" + genStoryId);
   }, [genStoryId, router]);
 
   return (
     <div className="min-h-screen bg-dark-950 grid-bg relative scanlines">
-      {/* Generate overlay */}
       <GenerateOverlay title={title || "Your Story"} visible={generating} done={genDone} onComplete={handleGenComplete} />
 
       {/* Error banner */}
@@ -270,6 +380,11 @@ function CreateStoryPage() {
                     className="w-full text-left p-3 rounded-lg border border-white/5 hover:border-purple-500/20 bg-white/[0.02] hover:bg-purple-500/5 transition-all disabled:opacity-30">
                     <div className="text-xs font-semibold text-white/80">{cs.name}</div>
                     <div className="text-[10px] text-white/30 font-mono">{cs.role} — {cs.description?.slice(0, 80)}</div>
+                    {cs.personality?.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {cs.personality.slice(0, 3).map(p => <span key={p} className="px-1.5 py-0.5 rounded text-[8px] font-mono border border-white/5 bg-white/[0.02] text-white/25">{p}</span>)}
+                      </div>
+                    )}
                   </button>
                 ))}
               </div>
@@ -278,27 +393,22 @@ function CreateStoryPage() {
         </div>
       )}
 
-      {/* Prompt Picker Modal */}
-      {showThemePicker && (
+      {/* Save as Theme Modal */}
+      {showSaveTheme && (
         <div className="fixed inset-0 z-[60] bg-dark-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-dark-900 border border-green-500/20 rounded-xl w-full max-w-lg p-6 space-y-4 max-h-[80vh] overflow-y-auto">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-white">Load Theme</h3>
-              <button onClick={() => setShowPromptPicker(false)} className="text-white/30 hover:text-white/60"><X className="w-4 h-4" /></button>
+          <div className="bg-dark-900 border border-green-500/20 rounded-xl w-full max-w-md p-6 space-y-4">
+            <h3 className="text-sm font-semibold text-white">Save as Theme</h3>
+            <p className="text-xs text-white/40">Save your current story concept as a reusable theme.</p>
+            <input value={newThemeName} onChange={(e) => setNewThemeName(e.target.value)}
+              placeholder="Theme name..." autoFocus
+              className="w-full bg-dark-800/50 border border-white/10 rounded-lg px-4 py-3 text-sm text-white placeholder-white/20 outline-none font-mono" />
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setShowSaveTheme(false)} className="px-4 py-2 text-xs text-white/40 hover:text-white/60 rounded-lg border border-white/10">Cancel</button>
+              <button onClick={saveAsTheme} disabled={!newThemeName.trim() || !premise.trim()}
+                className="px-4 py-2 text-xs text-green-400 rounded-lg border border-green-500/30 bg-green-500/10 hover:bg-green-500/20 disabled:opacity-30 flex items-center gap-2">
+                <Save className="w-3 h-3" /> Save Theme
+              </button>
             </div>
-            {savedThemes.length === 0 ? (
-              <p className="text-xs text-white/30">No saved themes. Create some in the Prompts page first.</p>
-            ) : (
-              <div className="space-y-2">
-                {savedThemes.map(p => (
-                  <button key={p.id} onClick={() => { applyStoryTheme(p); setShowPromptPicker(false); }}
-                    className="w-full text-left p-3 rounded-lg border border-white/5 hover:border-green-500/20 bg-white/[0.02] hover:bg-green-500/5 transition-all">
-                    <div className="text-xs font-semibold text-white/80">{p.name}</div>
-                    <div className="text-[10px] text-white/30 font-mono">{p.genre?.join(", ")} — {p.premise?.slice(0, 80)}</div>
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
         </div>
       )}
@@ -310,38 +420,31 @@ function CreateStoryPage() {
           <Sparkles className="w-5 h-5 text-neon-purple" />
           <h1 className="text-lg font-bold text-white">Create Story</h1>
           <div className="flex-1" />
-          {/* Draft / Load buttons */}
           {hasDraft && (
             <button onClick={loadDraft}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-orange-500/20 text-[10px] font-mono text-orange-400 hover:bg-orange-500/10">
               <FolderOpen className="w-3 h-3" /> Load Draft
             </button>
           )}
-          {savedThemes.length > 0 && (
-            <button onClick={() => setShowPromptPicker(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-green-500/20 text-[10px] font-mono text-green-400 hover:bg-green-500/10">
-              <FileText className="w-3 h-3" /> Load Theme
-            </button>
-          )}
         </div>
       </div>
 
       <div className="max-w-4xl mx-auto px-6 py-8 space-y-6">
-        {/* Title */}
-        <div className="rounded-xl border border-purple-500/20 bg-dark-900/50 p-5">
-          <label className="text-xs font-mono text-white/40 uppercase tracking-widest block mb-2">Story Title</label>
-          <input value={title} onChange={(e) => { setTitle(e.target.value); setTitleManuallyEdited(true); }} placeholder="Give your story a name..."
-            className="w-full bg-dark-800/50 border border-white/10 rounded-lg px-4 py-3 text-lg text-white placeholder-white/20 outline-none focus:border-purple-500/30 font-serif font-semibold" />
-        </div>
 
-        {/* Templates */}
-        <div className="rounded-xl border border-white/8 bg-dark-900/50 p-5">
-          <label className="text-xs font-mono text-white/40 uppercase tracking-widest block mb-3">Quick Start — Templates</label>
+        {/* ═══ SECTION A: Templates + Clear ═══ */}
+        <div className="rounded-xl border border-purple-500/15 bg-dark-900/50 p-5">
+          <div className="flex items-center justify-between mb-3">
+            <label className="text-xs font-mono text-white/40 uppercase tracking-widest">Quick Start — Templates</label>
+            <button onClick={clearAllInputs}
+              className="flex items-center gap-1 text-[10px] font-mono text-red-400 hover:text-red-300">
+              <X className="w-3 h-3" /> Clear all inputs
+            </button>
+          </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             {STORY_TEMPLATES.map((t) => (
               <button key={t.id} onClick={() => applyTemplate(t.id)}
                 className={`text-left p-3 rounded-lg border transition-all ${
-                  selectedTemplate === t.id ? "border-purple-500/40 bg-purple-500/10" : "border-white/5 bg-white/[0.02] hover:border-white/15"
+                  selectedTheme === t.id ? "border-purple-500/40 bg-purple-500/10" : "border-white/5 bg-white/[0.02] hover:border-white/15"
                 }`}>
                 <div className="text-xs font-semibold text-white/80 mb-0.5">{t.name}</div>
                 <div className="text-[9px] font-mono text-white/30">{t.genre.join(", ")}</div>
@@ -350,96 +453,130 @@ function CreateStoryPage() {
           </div>
         </div>
 
-        {/* Premise */}
-        <div className="rounded-xl border border-white/8 bg-dark-900/50 p-5">
-          <label className="text-xs font-mono text-white/40 uppercase tracking-widest block mb-2">What&apos;s your story about?</label>
+        {/* ═══ SECTION B: Title ═══ */}
+        <div className="rounded-xl border border-purple-500/20 bg-dark-900/50 p-5">
+          <label className="text-xs font-mono text-white/40 uppercase tracking-widest block mb-2">Story Title</label>
+          <input value={title} onChange={(e) => { setTitle(e.target.value); setTitleManuallyEdited(true); }} placeholder="Give your story a name..."
+            className="w-full bg-dark-800/50 border border-white/10 rounded-lg px-4 py-3 text-lg text-white placeholder-white/20 outline-none focus:border-purple-500/30 font-serif font-semibold" />
+        </div>
+
+        {/* ═══ SECTION C: Theme (Premise + Tags + Saved Themes) ═══ */}
+        <div className="rounded-xl border border-green-500/15 bg-dark-900/50 p-5">
+          <div className="flex items-center justify-between mb-3">
+            <label className="text-xs font-mono text-white/40 uppercase tracking-widest">Theme</label>
+            <button onClick={() => setShowSaveTheme(true)} disabled={!premise.trim()}
+              className="flex items-center gap-1 text-[10px] font-mono text-green-400 hover:text-green-300 disabled:opacity-30">
+              <Save className="w-3 h-3" /> Save as Theme
+            </button>
+          </div>
+          <label className="text-[10px] font-mono text-white/25 uppercase tracking-wider block mb-2">What&apos;s your story about?</label>
           <textarea value={premise} onChange={(e) => setPremise(e.target.value)} rows={4}
-            className="w-full bg-dark-800/50 border border-white/10 rounded-lg px-4 py-3 text-sm text-white placeholder-white/20 outline-none focus:border-purple-500/30 font-mono resize-none leading-relaxed" placeholder="Describe your story concept..." />
+            className="w-full bg-dark-800/50 border border-white/10 rounded-lg px-4 py-3 text-sm text-white placeholder-white/20 outline-none focus:border-green-500/30 font-mono resize-none leading-relaxed mb-4" placeholder="Describe your story concept..." />
+          <div className="space-y-3">
+            <Tags label="Genre" options={genreOpts} selected={genres} onToggle={(t) => toggle(genres, setGenres, t)} onAdd={(t) => addOpt(genreOpts, setGenreOpts, t)} />
+            <Tags label="Era" options={eraOpts} selected={[era]} onToggle={(t) => setEra(t === era ? "" : t)} onAdd={(t) => addOpt(eraOpts, setEraOpts, t)} />
+            <Tags label="Mood" options={moodOpts} selected={moods} onToggle={(t) => toggle(moods, setMoods, t)} onAdd={(t) => addOpt(moodOpts, setMoodOpts, t)} />
+            <Tags label="Setting" options={settingOpts} selected={[setting]} onToggle={(t) => setSetting(t === setting ? "" : t)} onAdd={(t) => addOpt(settingOpts, setSettingOpts, t)} />
+          </div>
+          {/* Saved themes */}
+          {savedThemes.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-white/5">
+              <label className="text-[10px] font-mono text-white/20 uppercase tracking-wider block mb-2">Saved Themes</label>
+              <div className="flex flex-wrap gap-2">
+                {savedThemes.map((t) => (
+                  <div key={t.id} className={`relative group px-3 py-1.5 rounded-lg border transition-all cursor-pointer ${
+                    selectedTheme === t.id ? "border-green-500/40 bg-green-500/10" : "border-green-500/10 bg-green-500/[0.02] hover:border-green-500/25"
+                  }`} onClick={() => applyTheme(t)}>
+                    <span className="text-[10px] font-mono text-green-400/80">{t.name}</span>
+                    <button onClick={(e) => { e.stopPropagation(); deleteTheme(t.id); }}
+                      className="absolute -top-1 -right-1 p-0.5 text-white/10 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Trash2 className="w-2.5 h-2.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Tags */}
-        <div className="rounded-xl border border-white/8 bg-dark-900/50 p-5 space-y-4">
-          <Tags label="Genre" options={genreOpts} selected={genres} onToggle={(t) => toggle(genres, setGenres, t)} onAdd={(t) => addOpt(genreOpts, setGenreOpts, t)} />
-          <Tags label="Era" options={eraOpts} selected={[era]} onToggle={(t) => setEra(t === era ? "" : t)} onAdd={(t) => addOpt(eraOpts, setEraOpts, t)} />
-          <Tags label="Mood" options={moodOpts} selected={moods} onToggle={(t) => toggle(moods, setMoods, t)} onAdd={(t) => addOpt(moodOpts, setMoodOpts, t)} />
-          <Tags label="Setting" options={settingOpts} selected={[setting]} onToggle={(t) => setSetting(t === setting ? "" : t)} onAdd={(t) => addOpt(settingOpts, setSettingOpts, t)} />
-        </div>
-
-        {/* Characters */}
+        {/* ═══ SECTION D: Characters ═══ */}
         <div className="rounded-xl border border-white/8 bg-dark-900/50 p-5">
           <div className="flex items-center justify-between mb-3">
-            <label className="text-xs font-mono text-white/40 uppercase tracking-widest">Characters</label>
+            <label className="text-xs font-mono text-white/40 uppercase tracking-widest flex items-center gap-2">
+              <Users className="w-3.5 h-3.5" /> Characters ({characters.length})
+            </label>
             <div className="flex items-center gap-2">
               {savedCharacters.length > 0 && (
                 <button onClick={() => setShowCharPicker(true)}
-                  className="text-[10px] font-mono text-neon-purple flex items-center gap-1">
-                  <Users className="w-3 h-3" /> Import
+                  className="flex items-center gap-1 text-[10px] font-mono text-neon-purple hover:text-purple-300">
+                  <Users className="w-3 h-3" /> From Library
                 </button>
               )}
-              <button onClick={() => setCharacters((p) => [...p, { name: "", role: "supporting", description: "" }])}
-                className="text-[10px] font-mono text-neon-purple flex items-center gap-1">
-                <Plus className="w-3 h-3" /> Add
+              <button onClick={() => setCharacters(prev => [...prev, { ...EMPTY_CHARACTER }])}
+                className="flex items-center gap-1 text-[10px] font-mono text-neon-purple hover:text-purple-300">
+                <Plus className="w-3 h-3" /> Add Character
               </button>
             </div>
           </div>
-          <div className="space-y-2">
-            {characters.map((ch, i) => (
-              <div key={i} className="flex gap-2 items-start">
-                <input value={ch.name} onChange={(e) => setCharacters((p) => p.map((c, j) => j === i ? { ...c, name: e.target.value } : c))}
-                  placeholder="Name" className="flex-1 bg-dark-800/50 border border-white/8 rounded-lg px-3 py-2 text-xs text-white placeholder-white/20 outline-none font-mono" />
-                <select value={ch.role} onChange={(e) => setCharacters((p) => p.map((c, j) => j === i ? { ...c, role: e.target.value as StoryCharacter["role"] } : c))}
-                  className="bg-dark-800/50 border border-white/8 rounded-lg px-2 py-2 text-xs text-white outline-none font-mono w-28">
-                  {["protagonist", "ally", "antagonist", "supporting", "mystery"].map((r) => <option key={r} value={r}>{r}</option>)}
-                </select>
-                <input value={ch.description} onChange={(e) => setCharacters((p) => p.map((c, j) => j === i ? { ...c, description: e.target.value } : c))}
-                  placeholder="Description" className="flex-[2] bg-dark-800/50 border border-white/8 rounded-lg px-3 py-2 text-xs text-white placeholder-white/20 outline-none font-mono" />
-                <button onClick={() => setCharacters((p) => p.filter((_, j) => j !== i))} className="p-2 text-white/20 hover:text-red-400"><X className="w-3 h-3" /></button>
-              </div>
-            ))}
-          </div>
+          {characters.length === 0 ? (
+            <div className="text-center py-8">
+              <Users className="w-8 h-8 text-white/10 mx-auto mb-2" />
+              <p className="text-xs text-white/25">No characters yet. Add one or import from your library.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {characters.map((char, i) => (
+                <CharacterCard
+                  key={i}
+                  char={char}
+                  index={i}
+                  onUpdate={updateCharacter}
+                  onRemove={removeCharacter}
+                  expanded={!!expandedChars[i]}
+                  onToggle={toggleCharExpand}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* POV + Length */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="rounded-xl border border-white/8 bg-dark-900/50 p-4">
-            <label className="text-[10px] font-mono text-white/30 uppercase tracking-wider block mb-2">Point of View</label>
-            <select value={pov} onChange={(e) => setPov(e.target.value)}
-              className="w-full bg-dark-800/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none font-mono">
-              <option value="first">First Person</option>
-              <option value="third-limited">Third Person Limited</option>
-              <option value="third-omniscient">Third Person Omniscient</option>
-            </select>
+        {/* ═══ SECTION E: Story Parameters ═══ */}
+        <div className="rounded-xl border border-white/8 bg-dark-900/50 p-5 space-y-4">
+          <label className="text-xs font-mono text-white/40 uppercase tracking-widest block">Story Parameters</label>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-[10px] font-mono text-white/30 uppercase tracking-wider block mb-2">Point of View</label>
+              <select value={pov} onChange={(e) => setPov(e.target.value)}
+                className="w-full bg-dark-800/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none font-mono">
+                <option value="first">First Person</option>
+                <option value="third-limited">Third Person Limited</option>
+                <option value="third-omniscient">Third Person Omniscient</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] font-mono text-white/30 uppercase tracking-wider block mb-2">Length</label>
+              <select value={length} onChange={(e) => setLength(e.target.value)}
+                className="w-full bg-dark-800/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none font-mono">
+                <option value="short">Short (3-4 chapters)</option>
+                <option value="medium">Medium (5-7 chapters)</option>
+                <option value="long">Long (8-12 chapters)</option>
+              </select>
+            </div>
           </div>
-          <div className="rounded-xl border border-white/8 bg-dark-900/50 p-4">
-            <label className="text-[10px] font-mono text-white/30 uppercase tracking-wider block mb-2">Length</label>
-            <select value={length} onChange={(e) => setLength(e.target.value)}
-              className="w-full bg-dark-800/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none font-mono">
-              <option value="short">Short (3-4 chapters)</option>
-              <option value="medium">Medium (5-7 chapters)</option>
-              <option value="long">Long (8-12 chapters)</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Chapter Word Count */}
-        <div className="rounded-xl border border-white/8 bg-dark-900/50 p-4">
-          <label className="text-[10px] font-mono text-white/30 uppercase tracking-wider block mb-2">Chapter Length (words per chapter)</label>
-          <div className="flex flex-wrap gap-2">
-            {[
-              { id: "short", label: "800-1.2k" },
-              { id: "medium", label: "1.2-1.8k" },
-              { id: "standard", label: "1.8-2.5k" },
-              { id: "long", label: "2.5-3.5k" },
-              { id: "epic", label: "3.5-5k" },
-              { id: "marathon", label: "5k+" },
-            ].map((opt) => (
-              <button key={opt.id} onClick={() => setWordCountRange(opt.id)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-mono border transition-all ${
-                  wordCountRange === opt.id ? "border-purple-500/40 bg-purple-500/15 text-neon-purple" : "border-white/8 text-white/30 hover:text-white/50"
-                }`}>
-                {opt.label}
-              </button>
-            ))}
+          <div>
+            <label className="text-[10px] font-mono text-white/30 uppercase tracking-wider block mb-2">Chapter Length (words per chapter)</label>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { id: "short", label: "800-1.2k" }, { id: "medium", label: "1.2-1.8k" },
+                { id: "standard", label: "1.8-2.5k" }, { id: "long", label: "2.5-3.5k" },
+                { id: "epic", label: "3.5-5k" }, { id: "marathon", label: "5k+" },
+              ].map((opt) => (
+                <button key={opt.id} onClick={() => setWordCountRange(opt.id)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-mono border transition-all ${
+                    wordCountRange === opt.id ? "border-purple-500/40 bg-purple-500/15 text-neon-purple" : "border-white/8 text-white/30 hover:text-white/50"
+                  }`}>{opt.label}</button>
+              ))}
+            </div>
           </div>
         </div>
 

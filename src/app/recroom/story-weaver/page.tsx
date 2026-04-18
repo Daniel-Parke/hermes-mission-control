@@ -2,7 +2,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { BookOpen, Plus, ChevronRight, Sparkles, Library, BookMarked, Users, FileText } from "lucide-react";
+import { BookOpen, Plus, ChevronRight, Sparkles, Library, Users, FileText } from "lucide-react";
 import StoryCard from "@/components/story-weaver/StoryCard";
 
 interface StorySummary {
@@ -78,10 +78,6 @@ export default function StoryWeaverDashboard() {
             className="flex items-center justify-center gap-2 px-6 py-4 rounded-xl border border-purple-500/30 bg-purple-500/10 text-sm font-mono text-neon-purple hover:bg-purple-500/20 transition-all shadow-[0_0_20px_rgba(168,85,247,0.1)]">
             <Plus className="w-4 h-4" /> Create
           </button>
-          <button onClick={() => router.push("/recroom/story-weaver/reading-desk")}
-            className="flex items-center justify-center gap-2 px-6 py-4 rounded-xl border border-white/10 text-sm font-mono text-white/50 hover:text-white/70 hover:bg-white/5 transition-all">
-            <BookMarked className="w-4 h-4" /> Reading Desk
-          </button>
           <button onClick={() => router.push("/recroom/story-weaver/library")}
             className="flex items-center justify-center gap-2 px-6 py-4 rounded-xl border border-white/10 text-sm font-mono text-white/50 hover:text-white/70 hover:bg-white/5 transition-all">
             <Library className="w-4 h-4" /> Library
@@ -92,7 +88,7 @@ export default function StoryWeaverDashboard() {
           </button>
           <button onClick={() => router.push("/recroom/story-weaver/themes")}
             className="flex items-center justify-center gap-2 px-6 py-4 rounded-xl border border-white/10 text-sm font-mono text-white/50 hover:text-white/70 hover:bg-white/5 transition-all">
-            <FileText className="w-4 h-4" /> Prompts
+            <FileText className="w-4 h-4" /> Themes
           </button>
         </div>
 

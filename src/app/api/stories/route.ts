@@ -243,6 +243,18 @@ async function handleCreate(body: Record<string, unknown>): Promise<NextResponse
       chapter1 = validateChapterOutput(raw);
     }
 
+    // If chapter 1 looks like a summary/outline instead of prose (< 400 words), regenerate
+    if (chapter1) {
+      const wordCount = chapter1.split(/\s+/).filter(Boolean).length;
+      const looksLikeOutline = /\*\*chapter|## chapter|\d+\.\s+\*\*|the chapter opens with|shall i continue/i.test(chapter1);
+      if (wordCount < 400 || looksLikeOutline) {
+        try {
+          const regenUser = `Write ONLY the full prose text of Chapter 1 of this story. No summaries, no outlines, no meta-commentary. At least 800 words of actual narrative prose.\n\nStory: ${cfg.premise}`;
+          chapter1 = validateChapterOutput(await callLLM(system, regenUser));
+        } catch {}
+      }
+    }
+
     // Validate arc has enough chapter outlines, rebuild if not
     const expectedChapters = getChapterCount(cfg.length as string);
     if (storyArc && (!storyArc.chapterOutlines || storyArc.chapterOutlines.length < expectedChapters)) {

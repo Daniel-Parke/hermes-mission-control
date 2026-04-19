@@ -68,15 +68,6 @@ export default function StoryReaderPage() {
     }
   }, []);
 
-  // Scroll to top when chapter changes
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (contentRef.current) contentRef.current.scrollTop = 0;
-      window.scrollTo({ top: 0, behavior: "instant" });
-    }, 150);
-    return () => clearTimeout(timer);
-  }, [currentChapter]);
-
   const [settings, setSettings] = useState<ReadingSettings>(DEFAULT_SETTINGS);
   useEffect(() => { setSettings(loadSettings()); }, []);
 
@@ -226,6 +217,12 @@ export default function StoryReaderPage() {
     const nextComplete = chapters.find((c: Chapter) => c.number > currentChapter && c.status === "complete");
     if (nextComplete) {
       setCurrentChapter(nextComplete.number);
+      // Force scroll to top
+      setTimeout(() => {
+        const el = contentRef.current;
+        if (el) { el.scrollTop = 0; el.scrollTo(0, 0); }
+        window.scrollTo(0, 0);
+      }, 50);
       setStory((prev: StoryState | null) => {
         if (!prev) return prev;
         return {
@@ -240,6 +237,17 @@ export default function StoryReaderPage() {
 
   const handleChapterSelect = async (num: number) => {
     setCurrentChapter(num);
+    // Force scroll to top of content area
+    setTimeout(() => {
+      const el = contentRef.current;
+      if (el) {
+        el.scrollTop = 0;
+        el.scrollTo(0, 0);
+      }
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      window.scrollTo(0, 0);
+    }, 50);
 
     const updatedChapters = (story?.chapters || []).map((c: Chapter) =>
       c.number === num && c.status === "complete" ? { ...c, readStatus: "read" as const } : c

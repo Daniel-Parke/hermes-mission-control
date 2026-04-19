@@ -217,12 +217,7 @@ export default function StoryReaderPage() {
     const nextComplete = chapters.find((c: Chapter) => c.number > currentChapter && c.status === "complete");
     if (nextComplete) {
       setCurrentChapter(nextComplete.number);
-      // Force scroll to top
-      setTimeout(() => {
-        const el = contentRef.current;
-        if (el) { el.scrollTop = 0; el.scrollTo(0, 0); }
-        window.scrollTo(0, 0);
-      }, 50);
+      setTimeout(() => document.getElementById("chapter-top")?.scrollIntoView(), 50);
       setStory((prev: StoryState | null) => {
         if (!prev) return prev;
         return {
@@ -237,17 +232,7 @@ export default function StoryReaderPage() {
 
   const handleChapterSelect = async (num: number) => {
     setCurrentChapter(num);
-    // Force scroll to top of content area
-    setTimeout(() => {
-      const el = contentRef.current;
-      if (el) {
-        el.scrollTop = 0;
-        el.scrollTo(0, 0);
-      }
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-      window.scrollTo(0, 0);
-    }, 50);
+    setTimeout(() => document.getElementById("chapter-top")?.scrollIntoView(), 50);
 
     const updatedChapters = (story?.chapters || []).map((c: Chapter) =>
       c.number === num && c.status === "complete" ? { ...c, readStatus: "read" as const } : c
@@ -522,7 +507,7 @@ export default function StoryReaderPage() {
           <div ref={contentRef} className="flex-1 w-full overflow-y-auto" style={{ background: theme.bg, filter: `brightness(${settings.brightness})` }}>
             {chapterContent ? (
               <div className="max-w-3xl mx-auto px-6 md:px-16 py-8 md:py-10">
-                <div className="flex items-center justify-between mb-8 pb-4 border-b" style={{
+                <div id="chapter-top" className="flex items-center justify-between mb-8 pb-4 border-b" style={{
                   borderColor: settings.pageTheme === "light" ? "#d4ccc0" : "#2a2520",
                 }}>
                   <h2 style={{

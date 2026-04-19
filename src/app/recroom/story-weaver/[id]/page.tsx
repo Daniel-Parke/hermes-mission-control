@@ -502,7 +502,7 @@ export default function StoryReaderPage() {
       <div className="flex-1 flex" style={{ height: "calc(100vh - 120px)" }}>
         {/* Chapter Sidebar */}
         {sidebarOpen && (
-          <div className="w-56 flex-shrink-0 border-r border-white/5 sticky top-0 h-screen overflow-y-auto hidden md:block" style={{ background: theme.panel }}>
+          <div className="w-56 flex-shrink-0 border-r border-white/5 sticky top-16 overflow-y-auto hidden md:block" style={{ background: theme.panel, maxHeight: "calc(100vh - 64px)" }}>
             <div className="p-4">
               <ChapterList chapters={chapters} currentChapter={currentChapter} onSelect={handleChapterSelect} />
             </div>

@@ -378,6 +378,21 @@ async function handleGenerateChapter(body: Record<string, unknown>): Promise<Nex
   const nextNum = nextIdx + 1;
 
   // Server-side lock
+  // Auto-reset stale "writing" locks (older than 5 minutes)
+  const now = Date.now();
+  let staleLockReset = false;
+  story.chapters.forEach((c: Record<string, unknown>) => {
+    if (c.status === "writing" && c.generatedAt) {
+      const elapsed = now - new Date(c.generatedAt as string).getTime();
+      if (elapsed > 5 * 60 * 1000) {
+        c.status = "pending";
+        c.generatedAt = null;
+        staleLockReset = true;
+      }
+    }
+  });
+  if (staleLockReset) writeFileSync(path, JSON.stringify(story, null, 2));
+
   const anyWriting = story.chapters.some((c: Record<string, unknown>) => c.status === "writing");
   if (anyWriting) {
     return NextResponse.json({ error: "A chapter is already being generated. Please wait." }, { status: 409 });

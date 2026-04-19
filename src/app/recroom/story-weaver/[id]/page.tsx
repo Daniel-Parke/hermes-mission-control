@@ -68,6 +68,15 @@ export default function StoryReaderPage() {
     }
   }, []);
 
+  // Scroll to top when chapter changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (contentRef.current) contentRef.current.scrollTop = 0;
+      window.scrollTo({ top: 0, behavior: "instant" });
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [currentChapter]);
+
   const [settings, setSettings] = useState<ReadingSettings>(DEFAULT_SETTINGS);
   useEffect(() => { setSettings(loadSettings()); }, []);
 
@@ -231,11 +240,7 @@ export default function StoryReaderPage() {
 
   const handleChapterSelect = async (num: number) => {
     setCurrentChapter(num);
-    // Scroll content area to top after chapter renders
-    requestAnimationFrame(() => {
-      if (contentRef.current) contentRef.current.scrollTop = 0;
-      window.scrollTo({ top: 0 });
-    });
+
     const updatedChapters = (story?.chapters || []).map((c: Chapter) =>
       c.number === num && c.status === "complete" ? { ...c, readStatus: "read" as const } : c
     );
